@@ -25,26 +25,27 @@ Nokwatch enables you to continuously monitor websites for specific content patte
 
 ## Installation
 
-### 1. Clone or Download the Project
+### 1. Clone the Repository
 
 ```bash
-cd /path/to/project
+git clone https://github.com/jimididit/nokwatch.git
+cd nokwatch
 ```
 
-### 2. Create Virtual Environment (Recommended)
+### 3. Create Virtual Environment (Recommended)
 
 ```bash
 python3 -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 ```
 
-### 3. Install Dependencies
+### 4. Install Dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### 4. Configure Environment Variables
+### 5. Configure Environment Variables
 
 Copy the example environment file and edit it:
 
@@ -80,7 +81,7 @@ DEFAULT_CHECK_INTERVAL=300
 - For Zoho, use your regular password. If you have 2FA enabled, you may need to generate an App Password from your Zoho account settings
 - Generate a strong `SECRET_KEY` for production (you can use: `python -c "import secrets; print(secrets.token_hex(32))"`)
 
-### 5. Initialize Database
+### 6. Initialize Database
 
 The database will be created automatically on first run, but you can also initialize it manually:
 
@@ -320,7 +321,7 @@ The application provides a REST API for programmatic access:
 
 ## Project Structure
 
-```
+```bash
 nokwatch/
 ├── app.py                 # Main Flask application
 ├── models.py              # Database models
