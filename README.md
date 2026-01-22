@@ -174,7 +174,7 @@ scp -r E:\Projects\WaitList pi@raspberrypi.local:/home/pi/nokwatch
 On Raspberry Pi:
 
 ```bash
-git clone <your-repo-url> nokwatch
+git clone https://github.com/jimididit/nokwatch.git
 cd nokwatch
 python3 -m venv venv
 source venv/bin/activate
