@@ -34,4 +34,4 @@ class Config:
     REQUEST_TIMEOUT = 10
     
     # User-Agent for requests
-    USER_AGENT = 'WebsiteMonitor/1.0'
+    USER_AGENT = 'Nokwatch/1.0'

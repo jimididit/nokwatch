@@ -31,9 +31,28 @@ def init_db():
             is_active INTEGER NOT NULL DEFAULT 1,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             last_checked TIMESTAMP,
-            last_match TIMESTAMP
+            last_match TIMESTAMP,
+            notification_throttle_seconds INTEGER DEFAULT 3600,
+            status_code_monitor INTEGER,
+            response_time_threshold REAL
         )
     ''')
+    
+    # Migrate existing tables - add new columns if they don't exist
+    try:
+        cursor.execute('ALTER TABLE monitor_jobs ADD COLUMN notification_throttle_seconds INTEGER DEFAULT 3600')
+    except sqlite3.OperationalError:
+        pass  # Column already exists
+    
+    try:
+        cursor.execute('ALTER TABLE monitor_jobs ADD COLUMN status_code_monitor INTEGER')
+    except sqlite3.OperationalError:
+        pass  # Column already exists
+    
+    try:
+        cursor.execute('ALTER TABLE monitor_jobs ADD COLUMN response_time_threshold REAL')
+    except sqlite3.OperationalError:
+        pass  # Column already exists
     
     # Create CheckHistory table
     cursor.execute('''
@@ -45,7 +64,36 @@ def init_db():
             match_found INTEGER NOT NULL DEFAULT 0,
             response_time REAL,
             error_message TEXT,
+            http_status_code INTEGER,
             FOREIGN KEY (job_id) REFERENCES monitor_jobs(id) ON DELETE CASCADE
+        )
+    ''')
+    
+    # Migrate check_history - add http_status_code if it doesn't exist
+    try:
+        cursor.execute('ALTER TABLE check_history ADD COLUMN http_status_code INTEGER')
+    except sqlite3.OperationalError:
+        pass  # Column already exists
+    
+    # Create NotificationChannels table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS notification_channels (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            job_id INTEGER NOT NULL,
+            channel_type TEXT NOT NULL CHECK(channel_type IN ('email', 'discord', 'slack')),
+            config TEXT NOT NULL,
+            FOREIGN KEY (job_id) REFERENCES monitor_jobs(id) ON DELETE CASCADE
+        )
+    ''')
+    
+    # Create NotificationThrottles table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS notification_throttles (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            job_id INTEGER NOT NULL,
+            last_notification_time TIMESTAMP,
+            FOREIGN KEY (job_id) REFERENCES monitor_jobs(id) ON DELETE CASCADE,
+            UNIQUE(job_id)
         )
     ''')
     
@@ -53,6 +101,8 @@ def init_db():
     cursor.execute('CREATE INDEX IF NOT EXISTS idx_job_id ON check_history(job_id)')
     cursor.execute('CREATE INDEX IF NOT EXISTS idx_timestamp ON check_history(timestamp)')
     cursor.execute('CREATE INDEX IF NOT EXISTS idx_is_active ON monitor_jobs(is_active)')
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_notification_channels_job_id ON notification_channels(job_id)')
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_notification_throttles_job_id ON notification_throttles(job_id)')
     
     conn.commit()
     conn.close()

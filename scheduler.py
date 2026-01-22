@@ -5,7 +5,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 from models import get_db
 from monitor import check_website
-from email_service import send_notification
+from notification_service import send_notification
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +25,8 @@ def run_check(job_id: int):
         # Get job details
         cursor.execute('''
             SELECT id, name, url, check_interval, match_type, match_pattern,
-                   match_condition, email_recipient, is_active
+                   match_condition, email_recipient, is_active,
+                   notification_throttle_seconds, status_code_monitor, response_time_threshold
             FROM monitor_jobs
             WHERE id = ?
         ''', (job_id,))
@@ -44,7 +45,10 @@ def run_check(job_id: int):
             'match_pattern': job_row[5],
             'match_condition': job_row[6],
             'email_recipient': job_row[7],
-            'is_active': job_row[8]
+            'is_active': job_row[8],
+            'notification_throttle_seconds': job_row[9] or 3600,
+            'status_code_monitor': job_row[10],
+            'response_time_threshold': job_row[11]
         }
         
         # Skip if job is not active
@@ -56,6 +60,26 @@ def run_check(job_id: int):
         
         # Perform check
         result = check_website(job)
+        
+        # Check HTTP status code monitoring
+        should_alert = False
+        alert_reason = None
+        
+        if result.get('match_found'):
+            should_alert = True
+            alert_reason = "match_found"
+        
+        # Check HTTP status code monitoring
+        if job.get('status_code_monitor') and result.get('http_status_code'):
+            if result['http_status_code'] == job['status_code_monitor']:
+                should_alert = True
+                alert_reason = f"status_code_{result['http_status_code']}"
+        
+        # Check response time threshold
+        if job.get('response_time_threshold') and result.get('response_time'):
+            if result['response_time'] > job['response_time_threshold']:
+                should_alert = True
+                alert_reason = "response_time_threshold"
         
         # Update last_checked timestamp
         cursor.execute('''
@@ -71,21 +95,23 @@ def run_check(job_id: int):
                 SET last_match = CURRENT_TIMESTAMP
                 WHERE id = ?
             ''', (job_id,))
-            
-            # Send email notification
+        
+        # Send notification if alert condition met
+        if should_alert:
             send_notification(job, result)
         
         # Log check history
         cursor.execute('''
             INSERT INTO check_history 
-            (job_id, status, match_found, response_time, error_message)
-            VALUES (?, ?, ?, ?, ?)
+            (job_id, status, match_found, response_time, error_message, http_status_code)
+            VALUES (?, ?, ?, ?, ?, ?)
         ''', (
             job_id,
             'success' if result['success'] else 'failed',
             1 if result.get('match_found') else 0,
             result.get('response_time'),
-            result.get('error_message')
+            result.get('error_message'),
+            result.get('http_status_code')
         ))
         
         conn.commit()

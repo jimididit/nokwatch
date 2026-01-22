@@ -35,7 +35,8 @@ def check_website(job: Dict) -> Dict:
         'match_found': False,
         'response_time': 0,
         'error_message': None,
-        'content_length': 0
+        'content_length': 0,
+        'http_status_code': None
     }
     
     try:
@@ -50,6 +51,10 @@ def check_website(job: Dict) -> Dict:
             timeout=Config.REQUEST_TIMEOUT,
             allow_redirects=True
         )
+        
+        # Capture HTTP status code
+        result['http_status_code'] = response.status_code
+        
         response.raise_for_status()
         
         # Parse HTML content
@@ -99,7 +104,9 @@ def check_website(job: Dict) -> Dict:
         result['error_message'] = f"Connection error: {str(e)}"
         logger.warning(f"Connection error checking {job['url']}: {e}")
     except requests.exceptions.HTTPError as e:
-        result['error_message'] = f"HTTP error {response.status_code}: {str(e)}"
+        if 'response' in locals():
+            result['http_status_code'] = response.status_code
+        result['error_message'] = f"HTTP error {result.get('http_status_code', 'unknown')}: {str(e)}"
         logger.warning(f"HTTP error checking {job['url']}: {e}")
     except Exception as e:
         result['error_message'] = f"Unexpected error: {str(e)}"

@@ -174,6 +174,12 @@ Visit the monitoring dashboard to view more details.
         logger.info(f"Email notification sent successfully to {job['email_recipient']}")
         return True
         
+    except smtplib.SMTPAuthenticationError as e:
+        logger.error(f"SMTP authentication failed: {e}")
+        return False
+    except smtplib.SMTPException as e:
+        logger.error(f"SMTP error occurred: {e}")
+        return False
     except Exception as e:
         logger.error(f"Failed to send email notification: {e}", exc_info=True)
         return False

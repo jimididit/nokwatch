@@ -125,7 +125,60 @@
                     <input type="email" id="email-recipient" name="email_recipient" class="form-input" required 
                            placeholder="your-email@example.com" autocomplete="email">
                     <span class="form-error" id="email-error"></span>
-                    <span class="form-help">Email address to receive notifications</span>
+                    <span class="form-help">Email address to receive notifications (for backward compatibility)</span>
+                </div>
+
+                <!-- Advanced Options -->
+                <div class="form-group">
+                    <details class="accordion">
+                        <summary>Advanced Options</summary>
+                        <div class="accordion-content">
+                            <!-- Notification Throttling -->
+                            <div class="form-group">
+                                <label for="notification-throttle" class="form-label">Notification Cooldown</label>
+                                <select id="notification-throttle" name="notification_throttle_seconds" class="form-select">
+                                    <option value="0">No cooldown</option>
+                                    <option value="300">5 minutes</option>
+                                    <option value="900">15 minutes</option>
+                                    <option value="1800" selected>30 minutes</option>
+                                    <option value="3600">1 hour</option>
+                                    <option value="7200">2 hours</option>
+                                    <option value="14400">4 hours</option>
+                                </select>
+                                <span class="form-help">Minimum time between notifications for this monitor</span>
+                            </div>
+
+                            <!-- HTTP Status Code Monitoring -->
+                            <div class="form-group">
+                                <label for="status-code-monitor" class="form-label">HTTP Status Code Monitoring</label>
+                                <input type="number" id="status-code-monitor" name="status_code_monitor" 
+                                       class="form-input" min="100" max="599" 
+                                       placeholder="e.g., 404, 500 (optional)">
+                                <span class="form-help">Alert when this HTTP status code is returned (leave empty to disable)</span>
+                            </div>
+
+                            <!-- Response Time Threshold -->
+                            <div class="form-group">
+                                <label for="response-time-threshold" class="form-label">Response Time Threshold (seconds)</label>
+                                <input type="number" id="response-time-threshold" name="response_time_threshold" 
+                                       class="form-input" min="0.1" step="0.1" 
+                                       placeholder="e.g., 5.0 (optional)">
+                                <span class="form-help">Alert if response time exceeds this value (leave empty to disable)</span>
+                            </div>
+
+                            <!-- Notification Channels -->
+                            <div class="form-group">
+                                <label class="form-label">Notification Channels</label>
+                                <div id="notification-channels-container">
+                                    <!-- Channels will be added dynamically -->
+                                </div>
+                                <button type="button" class="btn btn-secondary btn-sm mt-sm" onclick="addNotificationChannel()">
+                                    + Add Channel
+                                </button>
+                                <span class="form-help">Configure Discord, Slack, or multiple email addresses</span>
+                            </div>
+                        </div>
+                    </details>
                 </div>
             </form>
             <div class="modal-footer">

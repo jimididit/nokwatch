@@ -203,6 +203,12 @@ function openJobModal(jobId = null) {
     modal.classList.add('active');
     document.body.style.overflow = 'hidden';
     
+    // Ensure accordion is closed when opening modal
+    const accordion = document.querySelector('.accordion');
+    if (accordion && accordion.hasAttribute('open')) {
+        accordion.removeAttribute('open');
+    }
+    
     // Focus first input
     setTimeout(() => {
         document.getElementById('job-name').focus();
@@ -229,6 +235,11 @@ function populateForm(job) {
     document.getElementById('match-pattern').value = job.match_pattern || '';
     document.getElementById('email-recipient').value = job.email_recipient || '';
     
+    // Set advanced fields
+    document.getElementById('notification-throttle').value = job.notification_throttle_seconds || 1800;
+    document.getElementById('status-code-monitor').value = job.status_code_monitor || '';
+    document.getElementById('response-time-threshold').value = job.response_time_threshold || '';
+    
     // Set match type toggle
     setToggleActive('match-type', job.match_type || 'string');
     document.getElementById('match-type').value = job.match_type || 'string';
@@ -236,6 +247,9 @@ function populateForm(job) {
     // Set condition toggle
     setToggleActive('match-condition', job.match_condition || 'contains');
     document.getElementById('match-condition').value = job.match_condition || 'contains';
+    
+    // Load notification channels
+    loadNotificationChannels(job.notification_channels || []);
 }
 
 // Reset form toggles
@@ -244,6 +258,14 @@ function resetFormToggles() {
     setToggleActive('match-condition', 'contains');
     document.getElementById('match-type').value = 'string';
     document.getElementById('match-condition').value = 'contains';
+    
+    // Reset advanced fields
+    document.getElementById('notification-throttle').value = 1800;
+    document.getElementById('status-code-monitor').value = '';
+    document.getElementById('response-time-threshold').value = '';
+    
+    // Clear notification channels
+    document.getElementById('notification-channels-container').innerHTML = '';
 }
 
 // Set toggle button active state
@@ -297,6 +319,32 @@ async function handleJobSubmit(e) {
     // Get toggle values
     data.match_type = document.getElementById('match-type').value;
     data.match_condition = document.getElementById('match-condition').value;
+    
+    // Get advanced fields
+    const throttleSeconds = document.getElementById('notification-throttle').value;
+    if (throttleSeconds) {
+        data.notification_throttle_seconds = parseInt(throttleSeconds);
+    }
+    
+    const statusCodeMonitor = document.getElementById('status-code-monitor').value;
+    if (statusCodeMonitor) {
+        data.status_code_monitor = parseInt(statusCodeMonitor);
+    } else {
+        data.status_code_monitor = null;
+    }
+    
+    const responseTimeThreshold = document.getElementById('response-time-threshold').value;
+    if (responseTimeThreshold) {
+        data.response_time_threshold = parseFloat(responseTimeThreshold);
+    } else {
+        data.response_time_threshold = null;
+    }
+    
+    // Get notification channels
+    const channels = getNotificationChannelsFromForm();
+    if (channels.length > 0) {
+        data.notification_channels = channels;
+    }
     
     // Clear previous errors
     clearFormErrors();
@@ -691,6 +739,136 @@ async function testEmail() {
     }
 }
 
+// Notification channel management
+let notificationChannelCounter = 0;
+
+function loadNotificationChannels(channels) {
+    const container = document.getElementById('notification-channels-container');
+    if (!container) return;
+    
+    container.innerHTML = '';
+    notificationChannelCounter = 0;
+    
+    channels.forEach(channel => {
+        addNotificationChannelUI(channel.channel_type, channel.config, channel.id);
+    });
+}
+
+function addNotificationChannel() {
+    // Show channel type selector
+    const channelType = prompt('Select channel type:\n1. email\n2. discord\n3. slack\n\nEnter 1, 2, or 3:');
+    
+    if (!channelType) return;
+    
+    let type;
+    if (channelType === '1' || channelType.toLowerCase() === 'email') {
+        type = 'email';
+    } else if (channelType === '2' || channelType.toLowerCase() === 'discord') {
+        type = 'discord';
+    } else if (channelType === '3' || channelType.toLowerCase() === 'slack') {
+        type = 'slack';
+    } else {
+        showToast('Invalid channel type', 'error');
+        return;
+    }
+    
+    addNotificationChannelUI(type);
+}
+
+function addNotificationChannelUI(channelType, config = null, channelId = null) {
+    const container = document.getElementById('notification-channels-container');
+    if (!container) return;
+    
+    const channelIdAttr = channelId || `new_${notificationChannelCounter++}`;
+    const channelDiv = document.createElement('div');
+    channelDiv.className = 'notification-channel-item';
+    channelDiv.dataset.channelId = channelIdAttr;
+    channelDiv.dataset.channelType = channelType;
+    
+    let configHtml = '';
+    if (channelType === 'email') {
+        const emails = config?.email_addresses || (config?.email_addresses ? [config.email_addresses] : []);
+        const emailList = Array.isArray(emails) ? emails.join(', ') : emails;
+        configHtml = `
+            <label class="form-label">Email Addresses (comma-separated)</label>
+            <input type="text" class="form-input channel-config" 
+                   data-config-key="email_addresses" 
+                   value="${escapeHtml(emailList)}" 
+                   placeholder="email1@example.com, email2@example.com">
+        `;
+    } else if (channelType === 'discord') {
+        configHtml = `
+            <label class="form-label">Discord Webhook URL</label>
+            <input type="url" class="form-input channel-config" 
+                   data-config-key="webhook_url" 
+                   value="${config?.webhook_url || ''}" 
+                   placeholder="https://discord.com/api/webhooks/...">
+        `;
+    } else if (channelType === 'slack') {
+        configHtml = `
+            <label class="form-label">Slack Webhook URL</label>
+            <input type="url" class="form-input channel-config" 
+                   data-config-key="webhook_url" 
+                   value="${config?.webhook_url || ''}" 
+                   placeholder="https://hooks.slack.com/services/...">
+        `;
+    }
+    
+    channelDiv.innerHTML = `
+        <div class="notification-channel-header">
+            <span class="channel-type-badge">${channelType.toUpperCase()}</span>
+            <button type="button" class="btn btn-sm btn-danger" onclick="removeNotificationChannelUI(this)">
+                Remove
+            </button>
+        </div>
+        ${configHtml}
+    `;
+    
+    container.appendChild(channelDiv);
+}
+
+function removeNotificationChannelUI(button) {
+    const channelDiv = button.closest('.notification-channel-item');
+    if (channelDiv) {
+        channelDiv.remove();
+    }
+}
+
+function getNotificationChannelsFromForm() {
+    const container = document.getElementById('notification-channels-container');
+    if (!container) return [];
+    
+    const channels = [];
+    const channelItems = container.querySelectorAll('.notification-channel-item');
+    
+    channelItems.forEach(item => {
+        const channelType = item.dataset.channelType;
+        const config = {};
+        
+        const configInputs = item.querySelectorAll('.channel-config');
+        configInputs.forEach(input => {
+            const key = input.dataset.configKey;
+            const value = input.value.trim();
+            
+            if (key === 'email_addresses') {
+                // Split comma-separated emails and clean them
+                config[key] = value.split(',').map(e => e.trim()).filter(e => e);
+            } else {
+                config[key] = value;
+            }
+        });
+        
+        // Only add if config has required values
+        if (channelType === 'email' && config.email_addresses && config.email_addresses.length > 0) {
+            channels.push({ channel_type: channelType, config });
+        } else if ((channelType === 'discord' || channelType === 'slack') && config.webhook_url) {
+            channels.push({ channel_type: channelType, config });
+        }
+    });
+    
+    return channels;
+}
+
 // Make functions globally available
 window.openJobModal = openJobModal;
 window.closeJobModal = closeJobModal;
@@ -702,3 +880,5 @@ window.toggleHistory = toggleHistory;
 window.toggleMatchType = toggleMatchType;
 window.toggleCondition = toggleCondition;
 window.testEmail = testEmail;
+window.addNotificationChannel = addNotificationChannel;
+window.removeNotificationChannelUI = removeNotificationChannelUI;
