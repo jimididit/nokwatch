@@ -1,22 +1,27 @@
-# Website Monitor
+# Nokwatch
 
-A lightweight Python-based website monitoring tool designed to run on Raspberry Pi 4. Monitor multiple websites for content changes and receive email notifications when your specified criteria are met.
+A lightweight Python-based website monitoring tool designed to run efficiently on low resource devices like a Raspberry Pi. Monitor multiple websites for content changes and receive email notifications when your specified criteria are met.
+
+## Overview
+
+Nokwatch enables you to continuously monitor websites for specific content patterns. Whether you're tracking waitlist openings, product availability, or any content changes, Nokwatch checks your configured URLs at regular intervals and sends email alerts when matches are found.
 
 ## Features
 
 - **Multiple URL Monitoring**: Monitor multiple websites independently with custom configurations
-- **Flexible Content Matching**: Use simple string matching or regex patterns
+- **Flexible Content Matching**: Use simple string matching or regex patterns for precise content detection
 - **Configurable Check Intervals**: Set check frequency from 30 seconds to 1 hour per monitor
 - **Email Notifications**: Receive email alerts when matches are found
 - **Check History**: View detailed history of all checks for each monitor
 - **Modern Web UI**: Sleek, dark-themed, mobile-first web interface
-- **Resource Efficient**: Optimized for Raspberry Pi 4 (4GB RAM)
+- **Resource Efficient**: Optimized for Raspberry Pi 4 (4GB RAM) and low-resource environments
+- **Manual Testing**: Test monitors immediately without waiting for scheduled checks
 
 ## Requirements
 
 - Python 3.7 or higher
 - Raspberry Pi 4 (or any Linux/Windows machine)
-- SMTP email account (Zoho, Gmail, Outlook, etc.)
+- SMTP email account (Gmail, Outlook, Zoho, etc.)
 
 ## Installation
 
@@ -71,6 +76,7 @@ DEFAULT_CHECK_INTERVAL=300
 
 **Important Notes:**
 
+- For Gmail, you'll need to use an [App Password](https://support.google.com/accounts/answer/185833) instead of your regular password
 - For Zoho, use your regular password. If you have 2FA enabled, you may need to generate an App Password from your Zoho account settings
 - Generate a strong `SECRET_KEY` for production (you can use: `python -c "import secrets; print(secrets.token_hex(32))"`)
 
@@ -108,22 +114,22 @@ Create a systemd service file for automatic startup:
 ### 1. Create Service File
 
 ```bash
-sudo nano /etc/systemd/system/website-monitor.service
+sudo nano /etc/systemd/system/nokwatch.service
 ```
 
 ### 2. Add Service Configuration
 
 ```ini
 [Unit]
-Description=Website Monitor Service
+Description=Nokwatch Website Monitor Service
 After=network.target
 
 [Service]
 Type=simple
 User=pi
-WorkingDirectory=/home/pi/website-monitor
-Environment="PATH=/home/pi/website-monitor/venv/bin"
-ExecStart=/home/pi/website-monitor/venv/bin/gunicorn -w 2 -b 0.0.0.0:5000 app:app
+WorkingDirectory=/home/pi/nokwatch
+Environment="PATH=/home/pi/nokwatch/venv/bin"
+ExecStart=/home/pi/nokwatch/venv/bin/gunicorn -w 2 -b 0.0.0.0:5000 app:app
 Restart=always
 RestartSec=10
 
@@ -131,26 +137,26 @@ RestartSec=10
 WantedBy=multi-user.target
 ```
 
-**Note:** Adjust paths (`/home/pi/website-monitor`) to match your installation directory.
+**Note:** Adjust paths (`/home/pi/nokwatch`) to match your installation directory.
 
 ### 3. Enable and Start Service
 
 ```bash
 sudo systemctl daemon-reload
-sudo systemctl enable website-monitor.service
-sudo systemctl start website-monitor.service
+sudo systemctl enable nokwatch.service
+sudo systemctl start nokwatch.service
 ```
 
 ### 4. Check Service Status
 
 ```bash
-sudo systemctl status website-monitor.service
+sudo systemctl status nokwatch.service
 ```
 
 ### 5. View Logs
 
 ```bash
-sudo journalctl -u website-monitor.service -f
+sudo journalctl -u nokwatch.service -f
 ```
 
 ## Transferring to Raspberry Pi
@@ -160,7 +166,7 @@ sudo journalctl -u website-monitor.service -f
 From your Windows machine:
 
 ```powershell
-scp -r E:\Projects\WaitList pi@raspberrypi.local:/home/pi/website-monitor
+scp -r E:\Projects\WaitList pi@raspberrypi.local:/home/pi/nokwatch
 ```
 
 ### Method 2: Using Git
@@ -168,8 +174,8 @@ scp -r E:\Projects\WaitList pi@raspberrypi.local:/home/pi/website-monitor
 On Raspberry Pi:
 
 ```bash
-git clone <your-repo-url> website-monitor
-cd website-monitor
+git clone <your-repo-url> nokwatch
+cd nokwatch
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
@@ -182,7 +188,7 @@ cp .env.example .env
 From your Windows machine (if rsync is available):
 
 ```bash
-rsync -avz --exclude 'venv' --exclude '__pycache__' --exclude '*.db' E:\Projects\WaitList\ pi@raspberrypi.local:/home/pi/website-monitor/
+rsync -avz --exclude 'venv' --exclude '__pycache__' --exclude '*.db' E:\Projects\WaitList\ pi@raspberrypi.local:/home/pi/nokwatch/
 ```
 
 ## Testing
@@ -193,7 +199,7 @@ You can test the monitoring functionality without waiting for real websites to c
 
 **Option 1: Run Check Now Button**
 
-- In the web UI, each monitor card has a "▶️" button
+- In the web UI, each monitor card has a play button
 - Click it to immediately trigger a check for that monitor
 - Results will appear in the check history
 
@@ -271,6 +277,8 @@ The application provides a REST API for programmatic access:
 - `DELETE /api/jobs/<id>` - Delete a job
 - `GET /api/jobs/<id>/history` - Get check history for a job
 - `POST /api/jobs/<id>/toggle` - Toggle job active/inactive
+- `POST /api/jobs/<id>/run-check` - Manually trigger a check
+- `POST /api/test-email` - Send a test email
 - `GET /api/health` - Health check endpoint
 
 ## Troubleshooting
@@ -278,9 +286,10 @@ The application provides a REST API for programmatic access:
 ### Email Notifications Not Working
 
 1. Verify SMTP credentials in `.env`
-2. For Zoho, ensure you're using the correct password. If 2FA is enabled, use an App Password from Zoho account settings
-3. Check firewall settings - port 587 (TLS) or 465 (SSL) must be open
-4. Check application logs for error messages
+2. For Gmail, ensure you're using an App Password, not your regular password
+3. For Zoho, ensure you're using the correct password. If 2FA is enabled, use an App Password from Zoho account settings
+4. Check firewall settings - port 587 (TLS) or 465 (SSL) must be open
+5. Check application logs for error messages
 
 ### Database Issues
 
@@ -312,14 +321,16 @@ The application provides a REST API for programmatic access:
 ## Project Structure
 
 ```
-waitlist-monitor/
+nokwatch/
 ├── app.py                 # Main Flask application
 ├── models.py              # Database models
 ├── monitor.py             # Core monitoring logic
 ├── email_service.py       # Email notification service
 ├── scheduler.py           # Task scheduler
 ├── config.py              # Configuration management
+├── test_monitor.py        # Testing utilities
 ├── requirements.txt       # Python dependencies
+├── LICENSE                # MIT License
 ├── .env.example           # Environment variables template
 ├── static/                # Frontend assets
 │   ├── css/
@@ -334,7 +345,16 @@ waitlist-monitor/
 
 ## License
 
-This project is open source and available for personal use.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Contributing
+
+Contributions are welcome! Please ensure code follows PEP 8 style guidelines and includes appropriate error handling. When contributing:
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Submit a pull request
 
 ## Support
 
@@ -343,7 +363,8 @@ For issues or questions:
 1. Check the troubleshooting section above
 2. Review application logs
 3. Check that all dependencies are installed correctly
+4. Open an issue on GitHub if you encounter bugs
 
-## Contributing
+## Credits
 
-Contributions are welcome! Please ensure code follows PEP 8 style guidelines and includes appropriate error handling.
+Developed as part of the Nokturnal project by jimididit.
