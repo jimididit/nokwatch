@@ -166,7 +166,7 @@ sudo journalctl -u nokwatch.service -f
 From your Windows machine:
 
 ```powershell
-scp -r E:\Projects\WaitList pi@raspberrypi.local:/home/pi/nokwatch
+scp -r C:\path\to\nokwatch pi@raspberrypi.local:/home/pi/nokwatch
 ```
 
 ### Method 2: Using Git
@@ -188,7 +188,7 @@ cp .env.example .env
 From your Windows machine (if rsync is available):
 
 ```bash
-rsync -avz --exclude 'venv' --exclude '__pycache__' --exclude '*.db' E:\Projects\WaitList\ pi@raspberrypi.local:/home/pi/nokwatch/
+rsync -avz --exclude 'venv' --exclude '__pycache__' --exclude '*.db' /path/to/nokwatch/ pi@raspberrypi.local:/home/pi/nokwatch/
 ```
 
 ## Testing
