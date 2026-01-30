@@ -12,8 +12,9 @@ const Icons = {
     chevronUp: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg>',
     mail: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>',
     search: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>',
-    export: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>',
-    import: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>'
+    import: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>',
+    export: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>',
+    lightbulb: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>'
 };
 
 // State management
@@ -43,7 +44,7 @@ function initializeApp() {
     }
 }
 
-// Replace header/empty-state emojis with SVG icons; add icons to mobile nav items
+// Replace header/empty-state emojis with SVG icons; add icons to mobile nav and More dropdown
 function injectHeaderIcons() {
     const testEmailBtn = document.getElementById('test-email-btn');
     if (testEmailBtn) {
@@ -54,6 +55,22 @@ function injectHeaderIcons() {
         emptyIcon.innerHTML = Icons.search;
         emptyIcon.classList.add('empty-state-icon-svg');
     }
+    // Smart Setup: lightbulb icon (desktop header + mobile nav)
+    const smartSetupBtn = document.getElementById('smart-setup-btn');
+    if (smartSetupBtn) {
+        smartSetupBtn.innerHTML = '<span class="btn-icon-inline">' + Icons.lightbulb + '</span> Smart Setup';
+    }
+    const mobileSmartSetup = document.getElementById('mobile-smart-setup-btn');
+    if (mobileSmartSetup) {
+        mobileSmartSetup.innerHTML = '<span class="mobile-nav-item-icon">' + Icons.lightbulb + '</span> Smart Setup';
+    }
+    // More dropdown items: Export, Import, Test Email with icons
+    const moreExportBtn = document.getElementById('more-export-btn');
+    const moreImportBtn = document.getElementById('more-import-btn');
+    const moreTestEmailBtn = document.getElementById('more-test-email-btn');
+    if (moreExportBtn) moreExportBtn.innerHTML = '<span class="header-more-item-icon">' + Icons.export + '</span> Export';
+    if (moreImportBtn) moreImportBtn.innerHTML = '<span class="header-more-item-icon">' + Icons.import + '</span> Import';
+    if (moreTestEmailBtn) moreTestEmailBtn.innerHTML = '<span class="header-more-item-icon">' + Icons.mail + '</span> Test Email';
     // Mobile nav: Export, Import, Test Email with icons
     const mobileExport = document.getElementById('mobile-export-btn');
     const mobileImport = document.getElementById('mobile-import-btn');
@@ -76,6 +93,35 @@ function setupEventListeners() {
     if (testEmailBtn) {
         testEmailBtn.addEventListener('click', () => testEmail());
     }
+
+    // Smart Setup button (desktop header)
+    const smartSetupBtn = document.getElementById('smart-setup-btn');
+    if (smartSetupBtn) {
+        smartSetupBtn.addEventListener('click', () => openWizardModal());
+    }
+
+    // More dropdown (desktop): toggle on button click, close on outside click
+    const moreWrap = document.getElementById('header-more-wrap');
+    const moreBtn = document.getElementById('header-more-btn');
+    const moreDropdown = document.getElementById('header-more-dropdown');
+    if (moreBtn && moreWrap && moreDropdown) {
+        moreBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const isOpen = moreWrap.classList.toggle('open');
+            moreBtn.setAttribute('aria-expanded', isOpen);
+        });
+        document.addEventListener('click', () => {
+            moreWrap.classList.remove('open');
+            moreBtn.setAttribute('aria-expanded', 'false');
+        });
+        moreDropdown.addEventListener('click', (e) => e.stopPropagation());
+    }
+    const moreExportBtn = document.getElementById('more-export-btn');
+    const moreImportBtn = document.getElementById('more-import-btn');
+    const moreTestEmailBtn = document.getElementById('more-test-email-btn');
+    if (moreExportBtn) moreExportBtn.addEventListener('click', () => { exportConfig(); closeMoreDropdown(); });
+    if (moreImportBtn) moreImportBtn.addEventListener('click', () => { document.getElementById('import-file-input')?.click(); closeMoreDropdown(); });
+    if (moreTestEmailBtn) moreTestEmailBtn.addEventListener('click', () => { testEmail(); closeMoreDropdown(); });
     
     // Job form submission
     const jobForm = document.getElementById('job-form');
@@ -218,6 +264,13 @@ function closeWizardModal() {
     if (modal) modal.classList.remove('active');
     document.body.style.overflow = '';
     wizardSuggestions = null;
+}
+
+function closeMoreDropdown() {
+    const wrap = document.getElementById('header-more-wrap');
+    const btn = document.getElementById('header-more-btn');
+    if (wrap) wrap.classList.remove('open');
+    if (btn) btn.setAttribute('aria-expanded', 'false');
 }
 
 async function runWizardAnalyze() {

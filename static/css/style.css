@@ -109,6 +109,92 @@ p {
     flex-wrap: wrap;
 }
 
+/* More dropdown (desktop only; hidden on mobile) */
+.header-more-wrap {
+    position: relative;
+    display: none;
+}
+.header-more-btn {
+    padding: 0.5rem;
+    min-width: 44px;
+    min-height: 44px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: var(--transition);
+}
+.header-more-btn:hover {
+    background: var(--bg-card);
+    border-color: var(--accent-secondary);
+}
+.header-more-btn[aria-expanded="true"] {
+    background: var(--bg-card);
+    border-color: var(--accent-secondary);
+}
+.icon-ellipsis {
+    width: 24px;
+    height: 24px;
+    display: block;
+}
+.header-more-dropdown {
+    position: absolute;
+    right: 0;
+    top: 100%;
+    margin-top: var(--spacing-xs);
+    min-width: 160px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-md);
+    z-index: 100;
+    padding: var(--spacing-xs);
+    visibility: hidden;
+    opacity: 0;
+    pointer-events: none;
+    transition: visibility 0.15s, opacity 0.15s;
+}
+.header-more-wrap.open .header-more-dropdown {
+    visibility: visible;
+    opacity: 1;
+    pointer-events: auto;
+}
+.header-more-item {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    width: 100%;
+    padding: 0.625rem 1rem;
+    text-align: left;
+    font-size: 0.9375rem;
+    font-weight: 500;
+    color: var(--text-primary);
+    background: none;
+    border: none;
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    transition: background 0.15s;
+}
+.header-more-item-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+.header-more-item-icon svg {
+    width: 20px;
+    height: 20px;
+    display: block;
+}
+.header-more-item:hover {
+    background: var(--bg-tertiary);
+}
+.header-more-item:focus {
+    outline: none;
+    background: var(--bg-tertiary);
+}
+
 .status-indicator {
     display: flex;
     align-items: center;
@@ -1075,6 +1161,14 @@ a:hover {
     
     .fab {
         display: none;
+    }
+    
+    /* Desktop: show More dropdown, hide individual Export/Import/Test Email buttons */
+    .header-actions-extra {
+        display: none !important;
+    }
+    .header-more-wrap {
+        display: block;
     }
     
     .cards-grid {
