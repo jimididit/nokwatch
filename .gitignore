@@ -55,3 +55,9 @@ logs/
 
 # Screenshots
 static/screenshots
+
+# Docs
+docs/dist/
+docs/node_modules/
+docs/package-lock.json
+docs/.astro/

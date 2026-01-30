@@ -1,0 +1,40 @@
+---
+import '../styles/global.css';
+import Header from '../components/Header.astro';
+import Sidebar from '../components/Sidebar.astro';
+import Footer from '../components/Footer.astro';
+
+interface Props {
+  title: string;
+  description?: string;
+}
+
+const { title, description = 'Nokwatch documentation' } = Astro.props;
+---
+
+<!doctype html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content={description} />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <script async defer src="https://buttons.github.io/buttons.js"></script>
+    <title>{title} | Nokwatch Docs</title>
+  </head>
+  <body class="min-h-screen flex flex-col">
+    <Header />
+    <div class="flex flex-1 min-h-0">
+      <Sidebar />
+      <main class="min-w-0 flex-1 flex flex-col min-h-0 py-6 px-4 sm:py-8 sm:px-6 lg:px-8 overflow-x-hidden">
+        <article class="prose-docs mx-auto w-full max-w-3xl flex-1">
+          <slot />
+        </article>
+      </main>
+    </div>
+    <Footer />
+  </body>
+</html>

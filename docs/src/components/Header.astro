@@ -1,0 +1,49 @@
+---
+const repo = 'jimididit/nokwatch';
+const repoUrl = `https://github.com/${repo}`;
+---
+
+<header class="sticky top-0 z-50 shrink-0 border-b border-charcoal-800 bg-charcoal-950/95 backdrop-blur">
+  <div class="flex h-14 min-h-[3.5rem] w-full items-center justify-between px-4 sm:px-6">
+    <a href="/nokwatch/" class="flex min-h-[44px] min-w-[44px] shrink-0 items-center gap-2 font-semibold text-white hover:text-brand-teal-400 transition-colors focus:outline-none focus:ring-2 focus:ring-brand-teal-500 focus:ring-offset-2 focus:ring-offset-charcoal">
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0 text-brand-teal-400" aria-hidden="true">
+        <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20" />
+      </svg>
+      <span class="truncate">Nokwatch <em class="text-brand-teal-400">docs</em></span>
+    </a>
+    <div class="flex shrink-0 items-center gap-1 self-center">
+      <a href={repoUrl} target="_blank" rel="noopener noreferrer" class="hidden min-h-[44px] shrink-0 items-center px-2 text-sm text-gray-400 hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-brand-teal-500 focus:ring-offset-2 focus:ring-offset-charcoal sm:flex">
+        Repository
+      </a>
+      <span class="github-btn-wrapper inline-block shrink-0">
+        <a class="github-button" href="https://github.com/jimididit/nokwatch" data-icon="octicon-star" data-size="large" data-show-count="true" data-color-scheme="light" aria-label="Star jimididit/nokwatch on GitHub">Star</a>
+      </span>
+      <span class="github-btn-wrapper inline-block shrink-0">
+        <a class="github-button" href="https://github.com/jimididit/nokwatch/fork" data-icon="octicon-repo-forked" data-size="large" data-show-count="true" data-color-scheme="light" aria-label="Fork jimididit/nokwatch on GitHub">Fork</a>
+      </span>
+      <button type="button" id="sidebar-toggle" aria-label="Toggle navigation menu" class="ml-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-md text-gray-400 hover:bg-charcoal-800 hover:text-white focus:outline-none focus:ring-2 focus:ring-brand-teal-500 md:hidden">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <line x1="3" y1="12" x2="21" y2="12" />
+          <line x1="3" y1="6" x2="21" y2="6" />
+          <line x1="3" y1="18" x2="21" y2="18" />
+        </svg>
+      </button>
+    </div>
+  </div>
+</header>
+<script>
+  document.getElementById('sidebar-toggle')?.addEventListener('click', () => {
+    document.getElementById('sidebar')?.classList.toggle('!translate-x-0');
+    const backdrop = document.getElementById('sidebar-backdrop');
+    backdrop?.classList.toggle('!opacity-100');
+    backdrop?.classList.toggle('pointer-events-auto');
+    document.body.classList.toggle('overflow-hidden');
+  });
+  document.getElementById('sidebar-backdrop')?.addEventListener('click', () => {
+    document.getElementById('sidebar')?.classList.remove('!translate-x-0');
+    const backdrop = document.getElementById('sidebar-backdrop');
+    backdrop?.classList.remove('!opacity-100');
+    backdrop?.classList.remove('pointer-events-auto');
+    document.body.classList.remove('overflow-hidden');
+  });
+</script>

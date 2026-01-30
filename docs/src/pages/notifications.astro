@@ -1,0 +1,23 @@
+---
+import DocsLayout from '../layouts/DocsLayout.astro';
+---
+
+<DocsLayout title="Notifications" description="Email, Discord, Slack, cooldown">
+  <h1>Notifications</h1>
+  <p>When a monitor matches (or meets HTTP/response-time conditions), Nokwatch can notify you via email, Discord, and Slack. You can use multiple channels per monitor.</p>
+
+  <h2>Email</h2>
+  <p>Configure SMTP in <code>.env</code>. Each monitor has an email recipient; you can also add email as a notification channel in Advanced Options with multiple addresses.</p>
+
+  <h2>Discord</h2>
+  <p>In Advanced Options, add a notification channel, choose Discord, and paste your webhook URL. Create a webhook in your Discord server under Server Settings → Integrations → Webhooks.</p>
+
+  <h2>Slack</h2>
+  <p>Same as Discord: add a notification channel, choose Slack, and paste the Slack webhook URL (from Slack App or Incoming Webhooks).</p>
+
+  <h2>Notification cooldown</h2>
+  <p>Set a cooldown period (e.g. 1 hour) per monitor so you don’t get spammed. After a notification is sent, the next one for that monitor is skipped until the cooldown has passed.</p>
+
+  <h2>Test email</h2>
+  <p>Use the <strong>Test Email</strong> button in the header to verify SMTP configuration before creating monitors.</p>
+</DocsLayout>

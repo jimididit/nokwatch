@@ -1,0 +1,16 @@
+---
+import DocsLayout from '../layouts/DocsLayout.astro';
+---
+
+<DocsLayout title="Templates & Smart Setup" description="Pre-built templates and AI-assisted setup">
+  <h1>Templates & Smart Setup</h1>
+
+  <h2>Templates</h2>
+  <p>When adding a monitor, choose <strong>Start from template</strong> to prefill name, pattern, interval, and other settings. Templates include waitlist, availability, status page, and similar use cases.</p>
+
+  <h2>Smart Setup</h2>
+  <p>Use <strong>Smart Setup</strong> to paste a URL. Nokwatch fetches the page and suggests a monitor name, match pattern, condition, and check interval. This reduces manual configuration.</p>
+
+  <h2>Optional AI</h2>
+  <p>If <code>OPENAI_API_KEY</code> is set, Smart Setup can use OpenAI to improve suggestions. You can also enable <strong>AI content detection</strong> on a monitor: instead of (or in addition to) string/regex matching, the AI analyzes content changes and can trigger alerts based on semantic changes.</p>
+</DocsLayout>

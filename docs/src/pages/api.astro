@@ -1,0 +1,35 @@
+---
+import DocsLayout from '../layouts/DocsLayout.astro';
+---
+
+<DocsLayout title="API Reference" description="REST API endpoints">
+  <h1>API Reference</h1>
+  <p>Nokwatch exposes a REST API for jobs, history, and utilities. All endpoints return JSON.</p>
+
+  <h2>Jobs</h2>
+  <ul>
+    <li><code>GET /api/jobs</code> — List all jobs (optional <code>?tag=name</code>).</li>
+    <li><code>POST /api/jobs</code> — Create a job (JSON body with name, url, check_interval, match_type, match_pattern, match_condition, email_recipient, etc.).</li>
+    <li><code>PUT /api/jobs/&lt;id&gt;</code> — Update a job.</li>
+    <li><code>DELETE /api/jobs/&lt;id&gt;</code> — Delete a job.</li>
+    <li><code>GET /api/jobs/&lt;id&gt;/history</code> — Get check history for a job.</li>
+    <li><code>POST /api/jobs/&lt;id&gt;/toggle</code> — Toggle active/inactive.</li>
+    <li><code>POST /api/jobs/&lt;id&gt;/run-check</code> — Run a check now.</li>
+  </ul>
+
+  <h2>Notification channels</h2>
+  <ul>
+    <li><code>GET /api/jobs/&lt;id&gt;/notification-channels</code> — List channels for a job.</li>
+    <li><code>POST /api/jobs/&lt;id&gt;/notification-channels</code> — Add a channel (body: <code>channel_type</code>, <code>config</code>).</li>
+  </ul>
+
+  <h2>Other</h2>
+  <ul>
+    <li><code>POST /api/test-email</code> — Send a test email (optional body: <code>{'{"email": "addr"}'}</code>).</li>
+    <li><code>GET /api/health</code> — Health check.</li>
+    <li><code>GET /api/templates</code> — List monitor templates.</li>
+    <li><code>POST /api/wizard/analyze</code> — Smart Setup analysis (body: <code>url</code>, optional <code>prompt</code>).</li>
+    <li><code>GET /api/export</code> — Export all jobs as JSON.</li>
+    <li><code>POST /api/import</code> — Import jobs from JSON (body: <code>{'{"jobs": [...]}'}</code>).</li>
+  </ul>
+</DocsLayout>

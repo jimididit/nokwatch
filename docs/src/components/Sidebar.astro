@@ -1,0 +1,43 @@
+---
+const currentPath = Astro.url.pathname;
+const nav = [
+  { label: 'Introduction', href: '/nokwatch/' },
+  { label: 'Getting Started', href: '/nokwatch/getting-started/' },
+  { label: 'Installation', href: '/nokwatch/installation/' },
+  { label: 'Configuration', href: '/nokwatch/configuration/' },
+  { label: 'Monitoring', href: '/nokwatch/monitoring/' },
+  { label: 'Notifications', href: '/nokwatch/notifications/' },
+  { label: 'Auth & Security', href: '/nokwatch/auth-and-security/' },
+  { label: 'Templates & Smart Setup', href: '/nokwatch/templates-and-smart-setup/' },
+  { label: 'API Reference', href: '/nokwatch/api/' },
+  { label: 'Deployment', href: '/nokwatch/deployment/' },
+];
+
+function isActive(href: string) {
+  if (href === '/nokwatch/') return currentPath === '/nokwatch/' || currentPath === '/nokwatch';
+  return currentPath.startsWith(href);
+}
+---
+
+<div id="sidebar-backdrop" class="fixed inset-0 z-40 bg-black/60 opacity-0 transition-opacity duration-200 pointer-events-none md:hidden" aria-hidden="true"></div>
+<aside id="sidebar" class="fixed inset-y-0 left-0 z-50 w-72 max-w-[85vw] -translate-x-full border-r border-charcoal-800 bg-charcoal-900 shadow-xl transition-transform duration-200 md:relative md:inset-auto md:top-0 md:z-auto md:flex md:h-100vh md:min-h-0 md:w-56 md:max-w-none md:translate-x-0 md:shrink-0 md:shadow-none md:self-stretch">
+  <nav class="flex h-full min-h-0 flex-col overflow-y-auto py-6 pl-4 pr-2 md:sticky md:top-14 md:py-6" aria-label="Docs navigation">
+    <ul class="space-y-0.5">
+      {nav.map((item) => (
+        <li>
+          <a
+            href={item.href}
+            class:list={[
+              'block min-h-[44px] rounded-md px-3 py-2.5 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-brand-teal-500 focus:ring-offset-2 focus:ring-offset-charcoal-900 sm:min-h-0 sm:py-2',
+              isActive(item.href)
+                ? 'bg-brand-purple-900/80 text-brand-teal-400 font-medium'
+                : 'text-gray-400 hover:bg-charcoal-800 hover:text-gray-200',
+            ]}
+          >
+            {item.label}
+          </a>
+        </li>
+      ))}
+    </ul>
+  </nav>
+</aside>

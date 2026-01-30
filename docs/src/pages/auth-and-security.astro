@@ -1,0 +1,25 @@
+---
+import DocsLayout from '../layouts/DocsLayout.astro';
+---
+
+<DocsLayout title="Auth & Security" description="Encryption, credentials, best practices">
+  <h1>Auth & Security</h1>
+
+  <h2>Auth credentials in monitors</h2>
+  <p>Monitor auth settings (Basic Auth username/password, custom headers, cookies) and notification channel config (webhook URLs, email addresses) are stored in the database.</p>
+
+  <h2>Encryption at rest (optional)</h2>
+  <p>Set <code>ENCRYPTION_KEY</code> in <code>.env</code> to encrypt these values using Fernet. Without the key, they are stored as plain text for backward compatibility. Existing plain-text data continues to work; new and updated values are encrypted when the key is set.</p>
+  <p>Generate a key:</p>
+  <pre><code>python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"</code></pre>
+
+  <h2>Best practices</h2>
+  <ul>
+    <li>Do not commit <code>.env</code> or your database to version control.</li>
+    <li>Use a strong <code>SECRET_KEY</code> in production.</li>
+    <li>Run the app as a non-root user with minimal permissions.</li>
+    <li>Use HTTPS in production (e.g. nginx reverse proxy).</li>
+    <li>Restrict filesystem and database access so only the app can read/write.</li>
+  </ul>
+  <p>See the main repository’s <code>SECURITY.md</code> for details and how to report security issues.</p>
+</DocsLayout>

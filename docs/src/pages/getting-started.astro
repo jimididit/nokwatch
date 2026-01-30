@@ -1,0 +1,25 @@
+---
+import DocsLayout from '../layouts/DocsLayout.astro';
+---
+
+<DocsLayout title="Getting Started" description="Quick start with Nokwatch">
+  <h1>Getting Started</h1>
+  <p>After installation, open the Web UI at <code>http://localhost:5000</code> (or your server’s IP and port).</p>
+
+  <h2>Create your first monitor</h2>
+  <ol>
+    <li>Click <strong>Add Monitor</strong>.</li>
+    <li>Enter a name, the URL to watch, check interval (e.g. 300 seconds), match type (string or regex), pattern to look for, and notification email.</li>
+    <li>Click save. The monitor will run on schedule; use the play button on the card to run a check immediately.</li>
+  </ol>
+
+  <h2>Verify notifications</h2>
+  <p>Use <strong>Test Email</strong> in the header to confirm SMTP is configured. Add Discord or Slack in Advanced Options if you use them.</p>
+
+  <h2>Next steps</h2>
+  <ul>
+    <li><a href="/nokwatch/installation/">Installation</a> — Full install and optional minimal install.</li>
+    <li><a href="/nokwatch/configuration/">Configuration</a> — Environment variables and .env.</li>
+    <li><a href="/nokwatch/monitoring/">Monitoring</a> — Content matching, JSON path, HTTP status, and more.</li>
+  </ul>
+</DocsLayout>

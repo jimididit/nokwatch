@@ -1,0 +1,40 @@
+---
+import DocsLayout from '../layouts/DocsLayout.astro';
+---
+
+<DocsLayout title="Configuration" description="Environment variables and .env">
+  <h1>Configuration</h1>
+  <p>Nokwatch is configured via environment variables. Use a <code>.env</code> file in the project root (copy from <code>.env.example</code>). Never commit <code>.env</code> to version control.</p>
+
+  <h2>Required</h2>
+  <ul>
+    <li><code>SECRET_KEY</code> — Flask session key; use a strong random value in production.</li>
+    <li><code>SMTP_HOST</code>, <code>SMTP_PORT</code>, <code>SMTP_USERNAME</code>, <code>SMTP_PASSWORD</code>, <code>SMTP_USE_TLS</code> — For email notifications.</li>
+  </ul>
+
+  <h2>Optional</h2>
+  <ul>
+    <li><code>DATABASE_PATH</code> — Path to SQLite database (default: <code>monitor.db</code> in project root).</li>
+    <li><code>OPENAI_API_KEY</code> — For Smart Setup suggestions and AI content detection.</li>
+    <li><code>ENCRYPTION_KEY</code> — Fernet key to encrypt auth credentials and notification config in the database. Generate with: <code>python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"</code></li>
+    <li><code>DEFAULT_CHECK_INTERVAL</code> — Default interval in seconds (e.g. 300).</li>
+    <li><code>USER_AGENT</code> / <code>USER_AGENT_POOL</code> — User-Agent for HTTP requests.</li>
+  </ul>
+
+  <h2>Example .env</h2>
+  <pre><code>FLASK_ENV=production
+FLASK_DEBUG=False
+SECRET_KEY=your-super-secret-key
+
+DATABASE_PATH=monitor.db
+
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USERNAME=you@gmail.com
+SMTP_PASSWORD=your-app-password
+SMTP_USE_TLS=True
+
+# Optional
+# OPENAI_API_KEY=
+# ENCRYPTION_KEY=</code></pre>
+</DocsLayout>

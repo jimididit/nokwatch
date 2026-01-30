@@ -1,0 +1,67 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    @apply scroll-smooth;
+  }
+  body {
+    @apply bg-charcoal text-gray-200 antialiased;
+  }
+  :root {
+    --color-sidebar-bg: #171717;
+    --color-sidebar-border: #252525;
+    --color-accent: #2dd4bf;
+    --color-accent-hover: #5eead4;
+  }
+}
+
+@layer components {
+  .prose-docs h1 {
+    @apply text-2xl font-bold text-white border-b border-charcoal-800 pb-3 mb-6 sm:text-3xl;
+  }
+  .prose-docs h2 {
+    @apply text-lg font-semibold text-white mt-6 mb-3 sm:text-xl sm:mt-8;
+  }
+  .prose-docs h3 {
+    @apply text-base font-medium text-gray-100 mt-4 mb-2 sm:text-lg sm:mt-6;
+  }
+  .prose-docs p {
+    @apply text-gray-300 leading-relaxed mb-4 text-[15px] sm:text-base;
+  }
+  .prose-docs ul {
+    @apply list-disc list-inside text-gray-300 space-y-1 mb-4 text-[15px] sm:text-base;
+  }
+  .prose-docs ol {
+    @apply list-decimal list-inside text-gray-300 space-y-1 mb-4 text-[15px] sm:text-base;
+  }
+  .prose-docs a {
+    @apply text-brand-teal-400 hover:text-brand-teal-300 underline underline-offset-2;
+  }
+  .prose-docs code:not(pre code) {
+    @apply bg-charcoal-800 text-brand-teal-400 px-1.5 py-0.5 rounded text-sm font-mono;
+  }
+  .prose-docs pre {
+    @apply bg-charcoal-900 border border-charcoal-800 rounded-lg overflow-x-auto my-4 -mx-2 sm:mx-0;
+  }
+  .prose-docs pre code {
+    @apply text-gray-200 text-sm block p-4;
+  }
+}
+
+/* GitHub buttons: minimal gap, vertically centered in header */
+.github-btn-wrapper {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 2px;
+  vertical-align: middle;
+}
+.github-btn-wrapper:first-of-type {
+  margin-left: 0;
+}
+/* Center iframe/button content injected by buttons.github.io/buttons.js */
+.github-btn-wrapper iframe,
+.github-btn-wrapper .github-button {
+  vertical-align: middle !important;
+}

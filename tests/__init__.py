@@ -1,1 +1,0 @@
-"""Nokwatch test suite."""

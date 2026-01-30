@@ -1,0 +1,38 @@
+---
+import DocsLayout from '../layouts/DocsLayout.astro';
+---
+
+<DocsLayout title="Deployment" description="Production, gunicorn, systemd, Raspberry Pi">
+  <h1>Deployment</h1>
+  <p>For production (e.g. Raspberry Pi), use a WSGI server and run Nokwatch as a system service.</p>
+
+  <h2>Gunicorn</h2>
+  <pre><code>pip install gunicorn
+gunicorn -w 2 -b 0.0.0.0:5000 app:app</code></pre>
+
+  <h2>Systemd (Raspberry Pi)</h2>
+  <p>Create <code>/etc/systemd/system/nokwatch.service</code>:</p>
+  <pre><code>[Unit]
+Description=Nokwatch Website Monitor
+After=network.target
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/home/pi/nokwatch
+Environment="PATH=/home/pi/nokwatch/.venv/bin"
+ExecStart=/home/pi/nokwatch/.venv/bin/gunicorn -w 2 -b 0.0.0.0:5000 app:app
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target</code></pre>
+  <p>Then:</p>
+  <pre><code>sudo systemctl daemon-reload
+sudo systemctl enable nokwatch.service
+sudo systemctl start nokwatch.service</code></pre>
+  <p>Adjust <code>User</code>, <code>WorkingDirectory</code>, and <code>Environment</code> to match your install path.</p>
+
+  <h2>HTTPS</h2>
+  <p>Put nginx (or another reverse proxy) in front and use HTTPS. Never commit <code>.env</code> or the database.</p>
+</DocsLayout>

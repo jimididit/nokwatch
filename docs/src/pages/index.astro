@@ -1,0 +1,35 @@
+---
+import DocsLayout from '../layouts/DocsLayout.astro';
+---
+
+<DocsLayout title="Introduction" description="Nokwatch - lightweight website monitoring for low-resource devices">
+  <h1>Introduction</h1>
+  <p>
+    Nokwatch is a lightweight Python-based website monitoring tool. It runs on low-resource devices like a Raspberry Pi and monitors multiple websites for content changes. When your criteria are met, you get notified by email, Discord, or Slack.
+  </p>
+
+  <h2>Why Nokwatch?</h2>
+  <ul>
+    <li><strong>Lightweight</strong> — Designed for Raspberry Pi and similar devices; minimal dependencies with an optional minimal install.</li>
+    <li><strong>Flexible</strong> — String or regex matching, JSON/API monitoring with JSONPath, Basic Auth, custom headers, and cookies.</li>
+    <li><strong>Multi-channel</strong> — Email, Discord webhooks, and Slack webhooks; multiple channels per monitor with cooldown.</li>
+    <li><strong>Web UI</strong> — Dark-themed, mobile-friendly interface to add monitors, run checks, and view history.</li>
+  </ul>
+
+  <h2>Features at a glance</h2>
+  <ul>
+    <li>Multiple monitors with separate intervals and patterns</li>
+    <li>Content matching (contains / does not contain; string or regex)</li>
+    <li>HTTP status and response time alerts</li>
+    <li>JSON/API monitoring with JSONPath</li>
+    <li>Auth: Basic Auth, headers, cookies</li>
+    <li>Tags, templates, and Smart Setup (optional AI)</li>
+    <li>Check history with diff and optional screenshots</li>
+    <li>Export/Import monitors as JSON</li>
+  </ul>
+
+  <h2>Requirements</h2>
+  <p>Python 3.10+, an SMTP account for email, and optionally an OpenAI API key for Smart Setup and AI content detection.</p>
+
+  <p>Next: <a href="/nokwatch/getting-started/">Getting Started</a></p>
+</DocsLayout>

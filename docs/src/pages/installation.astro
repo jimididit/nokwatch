@@ -1,0 +1,31 @@
+---
+import DocsLayout from '../layouts/DocsLayout.astro';
+---
+
+<DocsLayout title="Installation" description="Install Nokwatch from source">
+  <h1>Installation</h1>
+
+  <h2>1. Clone the repository</h2>
+  <pre><code>git clone https://github.com/jimididit/nokwatch.git
+cd nokwatch</code></pre>
+
+  <h2>2. Create and activate a virtual environment</h2>
+  <pre><code>python3 -m venv .venv
+# Windows (PowerShell): .venv\Scripts\Activate.ps1
+# Linux/macOS: source .venv/bin/activate</code></pre>
+
+  <h2>3. Install dependencies</h2>
+  <pre><code>pip install -r requirements.txt</code></pre>
+  <p>For a smaller install on limited-resource devices (no AI, no screenshots, no test deps), use:</p>
+  <pre><code>pip install -r requirements-minimal.txt</code></pre>
+
+  <h2>4. Configure environment</h2>
+  <pre><code>cp .env.example .env</code></pre>
+  <p>Edit <code>.env</code>: set <code>SECRET_KEY</code>, SMTP settings, and optionally <code>OPENAI_API_KEY</code> and <code>ENCRYPTION_KEY</code>. For Gmail, use an <a href="https://support.google.com/accounts/answer/185833" target="_blank" rel="noopener">App Password</a>, not your normal password.</p>
+
+  <h2>5. Run the app</h2>
+  <pre><code>python app.py</code></pre>
+  <p>Open <code>http://localhost:5000</code> in your browser. The database is created automatically on first run.</p>
+
+  <p>See <a href="/nokwatch/deployment/">Deployment</a> for production (e.g. gunicorn and systemd on Raspberry Pi).</p>
+</DocsLayout>

@@ -1,0 +1,31 @@
+---
+import DocsLayout from '../layouts/DocsLayout.astro';
+---
+
+<DocsLayout title="Monitoring" description="Monitors, content matching, JSON path, HTTP status">
+  <h1>Monitoring</h1>
+  <p>Each monitor checks a URL on a schedule. You define what “match” means (e.g. page contains or does not contain text), and optionally trigger on HTTP status or response time.</p>
+
+  <h2>Content matching</h2>
+  <ul>
+    <li><strong>Match type</strong> — String (literal text) or Regex.</li>
+    <li><strong>Match condition</strong> — Contains (alert when pattern is present) or Not contains (alert when pattern is absent).</li>
+    <li><strong>Pattern</strong> — The string or regex to look for in the response body.</li>
+  </ul>
+
+  <h2>JSON / API monitoring</h2>
+  <p>For JSON responses, enable JSON monitoring and set a <strong>JSONPath</strong> (e.g. <code>$.status</code>). The monitor evaluates the extracted value against your pattern.</p>
+
+  <h2>HTTP status and response time</h2>
+  <p>In Advanced Options you can:</p>
+  <ul>
+    <li>Set <strong>HTTP Status Code Monitoring</strong> — Alert when the response status equals a given code (e.g. 404, 500).</li>
+    <li>Set <strong>Response Time Threshold</strong> — Alert when the request takes longer than this many seconds.</li>
+  </ul>
+
+  <h2>Auth (Basic Auth, headers, cookies)</h2>
+  <p>For protected URLs, use Advanced Options to add Basic Auth (username/password), custom headers (e.g. API keys), or cookies. These can be encrypted at rest if <code>ENCRYPTION_KEY</code> is set (see <a href="/nokwatch/auth-and-security/">Auth & Security</a>).</p>
+
+  <h2>Check history</h2>
+  <p>Open a monitor card to see past checks: status, response time, HTTP code, content diff, and (if enabled) screenshots.</p>
+</DocsLayout>
