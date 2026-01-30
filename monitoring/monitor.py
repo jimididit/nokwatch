@@ -1,13 +1,43 @@
 """Core monitoring service for website content checking."""
 import re
 import time
+import random
 import logging
 import requests
 from bs4 import BeautifulSoup
 from typing import Dict, Optional
-from config import Config
+
+from core.config import Config
+from monitoring.json_monitor import is_json_response, extract_text_from_json
+from monitoring.auth_handler import build_request_kwargs
 
 logger = logging.getLogger(__name__)
+
+
+def _run_ai_detection(job: Dict, text_content: str, result: Dict) -> None:
+    """If job has AI enabled, run analysis and set match_found when result changes."""
+    if not job.get("ai_enabled") or not (job.get("ai_prompt") or "").strip() or not text_content:
+        return
+    try:
+        from ai import analyze_content
+        new_result = analyze_content(text_content, job["ai_prompt"])
+        if new_result is None:
+            return
+        result["ai_analysis_result"] = new_result
+        last = (job.get("ai_last_result") or "").strip()
+        if last != new_result:
+            result["match_found"] = True
+    except Exception as e:
+        logger.warning("AI detection failed: %s", e)
+
+
+def _get_user_agent(job: Dict) -> str:
+    """Use job's custom_user_agent, or rotate from pool, or default."""
+    ua = (job.get("custom_user_agent") or "").strip()
+    if ua:
+        return ua
+    pool = getattr(Config, "USER_AGENT_POOL", None) or [Config.USER_AGENT]
+    return random.choice(pool) if pool else Config.USER_AGENT
 
 def check_website(job: Dict) -> Dict:
     """
@@ -36,20 +66,28 @@ def check_website(job: Dict) -> Dict:
         'response_time': 0,
         'error_message': None,
         'content_length': 0,
-        'http_status_code': None
+        'http_status_code': None,
+        'text_content': None  # For diff tracking (when success)
     }
     
     try:
-        # Fetch the website
-        headers = {
-            'User-Agent': Config.USER_AGENT
-        }
-        
+        # Fetch the website (merge auth/headers/cookies from auth_config)
+        headers = {'User-Agent': _get_user_agent(job)}
+        request_kwargs = build_request_kwargs(job)
+        if request_kwargs.get("headers"):
+            headers.update(request_kwargs["headers"])
+        proxies = None
+        proxy_url = (job.get("proxy_url") or "").strip()
+        if proxy_url:
+            proxies = {"http": proxy_url, "https": proxy_url}
         response = requests.get(
             job['url'],
             headers=headers,
             timeout=Config.REQUEST_TIMEOUT,
-            allow_redirects=True
+            allow_redirects=True,
+            auth=request_kwargs.get("auth"),
+            cookies=request_kwargs.get("cookies") or {},
+            proxies=proxies,
         )
         
         # Capture HTTP status code
@@ -57,22 +95,32 @@ def check_website(job: Dict) -> Dict:
         
         response.raise_for_status()
         
-        # Parse HTML content
-        soup = BeautifulSoup(response.content, 'html.parser')
+        content_type = response.headers.get("Content-Type") or ""
+        raw_content = response.content
+        json_path = job.get("json_path") or ""
         
-        # Remove script and style elements
-        for script in soup(["script", "style"]):
-            script.decompose()
-        
-        # Get text content
-        text_content = soup.get_text()
-        
-        # Clean up whitespace
-        text_content = ' '.join(text_content.split())
-        
-        result['content_length'] = len(text_content)
-        result['success'] = True
-        
+        # JSON/API mode: extract text via JSONPath when URL returns JSON
+        if json_path.strip() and is_json_response(content_type, raw_content):
+            ok, text_content, err = extract_text_from_json(raw_content, json_path)
+            if not ok:
+                result["error_message"] = err
+                result["success"] = False
+                return result
+            text_content = (text_content or "").strip()
+            result["content_length"] = len(text_content)
+            result["success"] = True
+            result["text_content"] = text_content[:100_000] if text_content else None
+        else:
+            # HTML mode: parse with BeautifulSoup
+            soup = BeautifulSoup(raw_content, "html.parser")
+            for script in soup(["script", "style"]):
+                script.decompose()
+            text_content = soup.get_text()
+            text_content = " ".join(text_content.split())
+            result["content_length"] = len(text_content)
+            result["success"] = True
+            result["text_content"] = text_content[:100_000] if text_content else None
+
         # Check for pattern match
         match_found = False
         
@@ -96,7 +144,10 @@ def check_website(job: Dict) -> Dict:
             result['match_found'] = match_found
         elif job['match_condition'] == 'not_contains':
             result['match_found'] = not match_found
-        
+
+        # AI-powered change detection: if enabled and result differs from last time, set match
+        _run_ai_detection(job, text_content, result)
+
     except requests.exceptions.Timeout:
         result['error_message'] = f"Request timeout after {Config.REQUEST_TIMEOUT} seconds"
         logger.warning(f"Timeout checking {job['url']}")

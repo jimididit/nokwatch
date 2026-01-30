@@ -3,10 +3,11 @@ import logging
 import json
 from typing import Dict, List, Optional
 from datetime import datetime, timedelta
-from models import get_db
-from email_service import send_notification as send_email_notification
-from discord_service import send_discord_notification
-from slack_service import send_slack_notification
+
+from core.models import get_db
+from services.email_service import send_notification as send_email_notification
+from services.discord_service import send_discord_notification
+from services.slack_service import send_slack_notification
 
 logger = logging.getLogger(__name__)
 
@@ -140,6 +141,8 @@ def send_notification(job: Dict, match_status: Dict, is_test: bool = False) -> b
     
     # Get notification channels
     channels = get_notification_channels(job_id)
+    if channels:
+        logger.info(f"Job {job_id}: sending to {len(channels)} channel(s): {[c['channel_type'] for c in channels]}")
     
     # If no channels configured, fall back to email_recipient (backward compatibility)
     if not channels and job.get('email_recipient'):
@@ -220,6 +223,29 @@ def add_notification_channel(job_id: int, channel_type: str, config: Dict) -> bo
         return True
     except Exception as e:
         logger.error(f"Error adding notification channel: {e}", exc_info=True)
+        conn.rollback()
+        return False
+    finally:
+        conn.close()
+
+def delete_channels_for_job(job_id: int) -> bool:
+    """
+    Delete all notification channels for a job.
+    
+    Args:
+        job_id: ID of the job
+    
+    Returns:
+        Boolean indicating success
+    """
+    conn = get_db()
+    cursor = conn.cursor()
+    try:
+        cursor.execute('DELETE FROM notification_channels WHERE job_id = ?', (job_id,))
+        conn.commit()
+        return True
+    except Exception as e:
+        logger.error(f"Error deleting channels for job {job_id}: {e}", exc_info=True)
         conn.rollback()
         return False
     finally:

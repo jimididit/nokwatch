@@ -5,15 +5,26 @@
     <!-- Header -->
     <header class="header">
         <div class="header-content">
-            <h1 class="header-title">Website Monitor</h1>
+            <div class="header-top-row">
+                <h1 class="header-title">Nokwatch</h1>
+                <button type="button" class="header-menu-btn" id="header-menu-btn" aria-label="Open menu" aria-expanded="false">
+                    <span class="menu-icon"></span>
+                </button>
+            </div>
             <div class="header-actions">
                 <div class="status-indicator">
                     <span class="status-dot"></span>
                     <span id="status-text">Running</span>
                 </div>
-                <button class="btn btn-secondary" id="test-email-btn" aria-label="Test email">
-                    ✉️ Test Email
-                </button>
+                <div class="header-actions-extra">
+                    <button class="btn btn-secondary" id="export-btn" aria-label="Export configuration">Export</button>
+                    <button class="btn btn-secondary" id="import-btn" aria-label="Import configuration">Import</button>
+                    <input type="file" id="import-file-input" accept=".json,application/json" class="hidden" aria-hidden="true">
+                    <button class="btn btn-secondary" id="test-email-btn" aria-label="Test email">
+                        <span class="btn-icon-inline" id="test-email-icon">✉️</span> Test Email
+                    </button>
+                </div>
+                <button class="btn btn-secondary header-smart-setup" id="smart-setup-btn" aria-label="Smart setup wizard">Smart Setup</button>
                 <button class="btn btn-primary" id="add-job-btn" aria-label="Add new monitor">
                     <span>+</span> Add Monitor
                 </button>
@@ -21,8 +32,65 @@
         </div>
     </header>
 
+    <!-- Mobile slide-in nav (Export, Import, Test Email) -->
+    <div id="mobile-nav-backdrop" class="mobile-nav-backdrop" aria-hidden="true" onclick="closeMobileNav()"></div>
+    <aside id="mobile-nav" class="mobile-nav" aria-label="Actions menu">
+        <div class="mobile-nav-header">
+            <span class="mobile-nav-title">Actions</span>
+            <button type="button" class="mobile-nav-close" onclick="closeMobileNav()" aria-label="Close menu">×</button>
+        </div>
+        <nav class="mobile-nav-body">
+            <button type="button" class="btn btn-secondary mobile-nav-item" id="mobile-smart-setup-btn" onclick="closeMobileNav(); openWizardModal();">
+                Smart Setup
+            </button>
+            <button type="button" class="btn btn-secondary mobile-nav-item" id="mobile-export-btn" onclick="exportConfig(); closeMobileNav();">
+                Export
+            </button>
+            <button type="button" class="btn btn-secondary mobile-nav-item" id="mobile-import-btn" onclick="document.getElementById('import-file-input').click(); closeMobileNav();">
+                Import
+            </button>
+            <button type="button" class="btn btn-secondary mobile-nav-item" id="mobile-test-email-btn" onclick="testEmail(); closeMobileNav();">
+                Test Email
+            </button>
+        </nav>
+    </aside>
+
     <!-- Main Content -->
     <main class="container">
+        <!-- Statistics Dashboard -->
+        <section class="stats-section" id="stats-section">
+            <div class="stats-header">
+                <h2 class="stats-title">Statistics</h2>
+                <select id="stats-period" class="form-select stats-period-select" aria-label="Time period">
+                    <option value="24">Last 24 hours</option>
+                    <option value="48">Last 48 hours</option>
+                    <option value="168">Last 7 days</option>
+                </select>
+            </div>
+            <div class="stats-cards" id="stats-cards">
+                <div class="stats-card">
+                    <span class="stats-card-label">Total Checks</span>
+                    <span class="stats-card-value" id="stat-total-checks">—</span>
+                </div>
+                <div class="stats-card">
+                    <span class="stats-card-label">Success Rate</span>
+                    <span class="stats-card-value" id="stat-success-rate">—</span>
+                </div>
+                <div class="stats-card">
+                    <span class="stats-card-label">Matches</span>
+                    <span class="stats-card-value" id="stat-matches">—</span>
+                </div>
+                <div class="stats-card">
+                    <span class="stats-card-label">Avg Response</span>
+                    <span class="stats-card-value" id="stat-avg-response">—</span>
+                </div>
+            </div>
+            <details class="stats-chart-details">
+                <summary>Checks over time</summary>
+                <div class="stats-chart" id="stats-chart"></div>
+            </details>
+        </section>
+
         <!-- Loading State -->
         <div id="loading-state" class="text-center mt-lg">
             <div class="loading"></div>
@@ -39,6 +107,14 @@
             </button>
         </div>
 
+        <!-- Tag filter -->
+        <div class="tag-filter-row hidden" id="tag-filter-row">
+            <label for="tag-filter" class="tag-filter-label">Filter by tag:</label>
+            <select id="tag-filter" class="form-select tag-filter-select" aria-label="Filter by tag">
+                <option value="">All monitors</option>
+            </select>
+        </div>
+
         <!-- Jobs Grid -->
         <div id="jobs-container" class="cards-grid hidden"></div>
     </main>
@@ -47,6 +123,35 @@
     <button class="fab" id="fab-btn" aria-label="Add new monitor" onclick="openJobModal()">
         +
     </button>
+
+    <!-- Smart Setup Wizard Modal -->
+    <div id="wizard-modal" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 class="modal-title">Smart Setup</h2>
+                <button type="button" class="modal-close" onclick="closeWizardModal()" aria-label="Close">×</button>
+            </div>
+            <div class="modal-body">
+                <p class="text-secondary mb-md">Enter a URL to analyze. We'll suggest a monitor name and pattern to watch for (requires OpenAI API key for best results).</p>
+                <div class="form-group">
+                    <label for="wizard-url" class="form-label">URL *</label>
+                    <input type="url" id="wizard-url" class="form-input" placeholder="https://example.com" autocomplete="url">
+                </div>
+                <div id="wizard-error" class="form-error hidden"></div>
+                <div id="wizard-results" class="hidden">
+                    <div class="form-group">
+                        <span class="form-label">Suggested settings</span>
+                        <div class="wizard-suggestions" id="wizard-suggestions-text"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeWizardModal()">Cancel</button>
+                <button type="button" class="btn btn-primary" id="wizard-analyze-btn" onclick="runWizardAnalyze()">Analyze</button>
+                <button type="button" class="btn btn-primary hidden" id="wizard-use-btn" onclick="applyWizardAndOpenForm()">Use these settings</button>
+            </div>
+        </div>
+    </div>
 
     <!-- Job Modal -->
     <div id="job-modal" class="modal-overlay">
@@ -58,6 +163,15 @@
             <form id="job-form" class="modal-body">
                 <input type="hidden" id="job-id" name="id">
                 
+                <div class="form-group">
+                    <label for="template-select" class="form-label">Start from template</label>
+                    <select id="template-select" class="form-select" aria-label="Pre-built template (optional)">
+                        <option value="">None — configure from scratch</option>
+                        <!-- Options filled by JS from /api/templates -->
+                    </select>
+                    <span class="form-help" id="template-description"></span>
+                </div>
+
                 <div class="form-group">
                     <label for="job-name" class="form-label">Job Name *</label>
                     <input type="text" id="job-name" name="name" class="form-input" required 
@@ -166,6 +280,86 @@
                                 <span class="form-help">Alert if response time exceeds this value (leave empty to disable)</span>
                             </div>
 
+                            <!-- Tags -->
+                            <div class="form-group">
+                                <label for="job-tags" class="form-label">Tags</label>
+                                <input type="text" id="job-tags" name="tags" class="form-input" 
+                                       placeholder="e.g., production, waitlist (comma-separated)">
+                                <span class="form-help">Organize monitors with tags; filter by tag on the dashboard.</span>
+                            </div>
+
+                            <!-- JSON/API Monitoring -->
+                            <div class="form-group">
+                                <label for="json-path" class="form-label">JSONPath (API monitoring)</label>
+                                <input type="text" id="json-path" name="json_path" class="form-input" 
+                                       placeholder="e.g., $.data.status or $.items[*].name (optional)">
+                                <span class="form-help">When set, URL is treated as JSON; pattern is matched against the value at this path. Leave empty for HTML monitoring.</span>
+                            </div>
+
+                            <!-- Proxy -->
+                            <div class="form-group">
+                                <label for="proxy-url" class="form-label">Proxy URL</label>
+                                <input type="url" id="proxy-url" name="proxy_url" class="form-input" 
+                                       placeholder="e.g., http://proxy:8080 (optional)">
+                                <span class="form-help">HTTP/HTTPS proxy for this monitor (leave empty to disable)</span>
+                            </div>
+
+                            <!-- Custom User-Agent -->
+                            <div class="form-group">
+                                <label for="custom-user-agent" class="form-label">Custom User-Agent</label>
+                                <input type="text" id="custom-user-agent" name="custom_user_agent" class="form-input" 
+                                       placeholder="Leave empty for default or rotation pool">
+                                <span class="form-help">Override User-Agent for this monitor (optional)</span>
+                            </div>
+
+                            <!-- Screenshot on match -->
+                            <div class="form-group">
+                                <label class="form-label">Screenshot on match</label>
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="capture-screenshot" name="capture_screenshot" value="1">
+                                    Capture screenshot when pattern matches (requires Playwright)
+                                </label>
+                                <span class="form-help">Saves a screenshot to history; adds resource usage</span>
+                            </div>
+
+                            <!-- AI content detection -->
+                            <div class="form-group">
+                                <label class="form-label">AI content detection</label>
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="ai-enabled" name="ai_enabled" value="1">
+                                    Use AI to detect semantic changes (requires OpenAI API key)
+                                </label>
+                                <label for="ai-prompt" class="form-label form-label-sm mt-sm">AI prompt</label>
+                                <textarea id="ai-prompt" name="ai_prompt" class="form-textarea" rows="3" 
+                                          placeholder="e.g., Has the availability status changed? (Available / Out of Stock / Waitlist)"></textarea>
+                                <span class="form-help">Ask in one sentence what to detect. The AI analyzes page content each check; if the answer changes, you get notified. Set OPENAI_API_KEY in .env.</span>
+                            </div>
+
+                            <!-- Authentication -->
+                            <div class="form-group">
+                                <label class="form-label">Authentication</label>
+                                <div class="auth-config">
+                                    <div class="form-group">
+                                        <label for="auth-basic-username" class="form-label form-label-sm">Basic Auth (optional)</label>
+                                        <div class="form-row">
+                                            <input type="text" id="auth-basic-username" class="form-input" placeholder="Username" autocomplete="off">
+                                            <input type="password" id="auth-basic-password" class="form-input" placeholder="Password" autocomplete="off">
+                                        </div>
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label form-label-sm">Custom Headers (e.g. Authorization)</label>
+                                        <div id="auth-headers-container"></div>
+                                        <button type="button" class="btn btn-secondary btn-sm mt-sm" onclick="addAuthHeader()">+ Add Header</button>
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label form-label-sm">Cookies</label>
+                                        <div id="auth-cookies-container"></div>
+                                        <button type="button" class="btn btn-secondary btn-sm mt-sm" onclick="addAuthCookie()">+ Add Cookie</button>
+                                    </div>
+                                </div>
+                                <span class="form-help">Basic Auth, custom headers (API keys), or cookies for authenticated endpoints.</span>
+                            </div>
+
                             <!-- Notification Channels -->
                             <div class="form-group">
                                 <label class="form-label">Notification Channels</label>
@@ -189,5 +383,27 @@
 
     <!-- Toast Container -->
     <div class="toast-container" id="toast-container"></div>
+</div>
+
+<!-- History modal outside #app so position:fixed is viewport-relative (same fix as lightbox) -->
+<div id="history-modal" class="modal-overlay history-modal-overlay">
+    <div class="modal history-modal">
+        <div class="modal-header">
+            <h2 class="modal-title" id="history-modal-title">Check History</h2>
+            <button type="button" class="modal-close" onclick="closeHistoryModal()" aria-label="Close">×</button>
+        </div>
+        <div class="history-modal-body" id="history-modal-body">
+            <div class="loading" style="margin: 2rem auto;"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Lightbox outside #app so position:fixed is viewport-relative and it can sit on top -->
+<div id="lightbox" class="lightbox-overlay" aria-hidden="true" role="dialog" aria-modal="true" aria-label="View larger">
+    <div class="lightbox-backdrop" onclick="closeLightbox()"></div>
+    <div class="lightbox-container">
+        <button type="button" class="lightbox-close" onclick="closeLightbox()" aria-label="Close">×</button>
+        <div class="lightbox-content" id="lightbox-content"></div>
+    </div>
 </div>
 {% endblock %}

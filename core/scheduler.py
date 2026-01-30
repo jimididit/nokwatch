@@ -3,9 +3,12 @@ import logging
 from datetime import datetime
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.interval import IntervalTrigger
-from models import get_db
-from monitor import check_website
-from notification_service import send_notification
+
+from core.models import get_db
+from monitoring.monitor import check_website
+from services.notification_service import send_notification
+from services.diff_service import save_snapshot_and_diff
+from services.screenshot_service import capture_screenshot
 
 logger = logging.getLogger(__name__)
 
@@ -26,16 +29,18 @@ def run_check(job_id: int):
         cursor.execute('''
             SELECT id, name, url, check_interval, match_type, match_pattern,
                    match_condition, email_recipient, is_active,
-                   notification_throttle_seconds, status_code_monitor, response_time_threshold
+                   notification_throttle_seconds, status_code_monitor, response_time_threshold,
+                   json_path, auth_config, proxy_url, custom_user_agent, capture_screenshot,
+                   ai_enabled, ai_prompt, ai_last_result
             FROM monitor_jobs
             WHERE id = ?
         ''', (job_id,))
-        
+
         job_row = cursor.fetchone()
         if not job_row:
             logger.warning(f"Job {job_id} not found")
             return
-        
+
         job = {
             'id': job_row[0],
             'name': job_row[1],
@@ -46,9 +51,17 @@ def run_check(job_id: int):
             'match_condition': job_row[6],
             'email_recipient': job_row[7],
             'is_active': job_row[8],
-            'notification_throttle_seconds': job_row[9] or 3600,
+            'notification_throttle_seconds': 3600 if job_row[9] is None else job_row[9],
             'status_code_monitor': job_row[10],
-            'response_time_threshold': job_row[11]
+            'response_time_threshold': job_row[11],
+            'json_path': job_row[12] or "",
+            'auth_config': job_row[13],
+            'proxy_url': job_row[14] or "",
+            'custom_user_agent': job_row[15] or "",
+            'capture_screenshot': bool(job_row[16]) if len(job_row) > 16 else False,
+            'ai_enabled': bool(job_row[17]) if len(job_row) > 17 else False,
+            'ai_prompt': job_row[18] if len(job_row) > 18 else None,
+            'ai_last_result': job_row[19] if len(job_row) > 19 else None,
         }
         
         # Skip if job is not active
@@ -81,40 +94,68 @@ def run_check(job_id: int):
                 should_alert = True
                 alert_reason = "response_time_threshold"
         
-        # Update last_checked timestamp
+        # Update last_checked timestamp (local time)
         cursor.execute('''
             UPDATE monitor_jobs
-            SET last_checked = CURRENT_TIMESTAMP
+            SET last_checked = datetime('now', 'localtime')
             WHERE id = ?
         ''', (job_id,))
         
-        # If match found, update last_match timestamp
+        # If match found, update last_match timestamp (local time)
         if result.get('match_found'):
             cursor.execute('''
                 UPDATE monitor_jobs
-                SET last_match = CURRENT_TIMESTAMP
+                SET last_match = datetime('now', 'localtime')
                 WHERE id = ?
             ''', (job_id,))
+
+        # Store AI analysis result for next comparison
+        ai_result = result.get('ai_analysis_result')
+        if ai_result is not None:
+            cursor.execute('''
+                UPDATE monitor_jobs
+                SET ai_last_result = ?
+                WHERE id = ?
+            ''', (ai_result, job_id))
+
+        # Content diff tracking: save snapshot and compute diff when match found (use same conn to avoid DB lock)
+        content_snapshot_id = None
+        diff_data = None
+        if result.get('match_found') and result.get('text_content'):
+            snapshot_id, diff_text = save_snapshot_and_diff(job_id, result['text_content'], conn=conn)
+            content_snapshot_id = snapshot_id
+            diff_data = diff_text if diff_text else None
         
-        # Send notification if alert condition met
-        if should_alert:
-            send_notification(job, result)
+        # Optional screenshot on match
+        screenshot_path = None
+        if result.get('match_found') and job.get('capture_screenshot'):
+            screenshot_path = capture_screenshot(job['url'], job_id)
         
-        # Log check history
+        # Log check history (include content_snapshot_id, diff_data, screenshot_path when present); timestamp in local time
+        now_local = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         cursor.execute('''
             INSERT INTO check_history 
-            (job_id, status, match_found, response_time, error_message, http_status_code)
-            VALUES (?, ?, ?, ?, ?, ?)
+            (job_id, timestamp, status, match_found, response_time, error_message, http_status_code, content_snapshot_id, diff_data, screenshot_path)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ''', (
             job_id,
+            now_local,
             'success' if result['success'] else 'failed',
             1 if result.get('match_found') else 0,
             result.get('response_time'),
             result.get('error_message'),
-            result.get('http_status_code')
+            result.get('http_status_code'),
+            content_snapshot_id,
+            diff_data,
+            screenshot_path
         ))
         
+        # Commit and release DB lock before sending notifications (avoids "database is locked")
         conn.commit()
+        
+        # Send notification if alert condition met (after commit so notification_service can write throttle)
+        if should_alert:
+            send_notification(job, result)
         
         if result['success']:
             logger.info(f"Check completed for job {job_id}: match={result.get('match_found')}")

@@ -1,0 +1,13 @@
+# Minimal install for low-resource devices (Raspberry Pi, etc.).
+# Skips: OpenAI (AI features), Playwright (screenshots), testing.
+# AI and screenshot features will be disabled; all other features work.
+
+Flask==3.0.0
+APScheduler==3.10.4
+requests==2.32.4
+beautifulsoup4==4.12.2
+python-dotenv==1.0.0
+Werkzeug==3.1.5
+jsonpath-ng>=1.6.0
+cryptography>=41.0.0
+requests[socks]==2.32.4
