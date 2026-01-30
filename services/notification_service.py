@@ -5,6 +5,7 @@ from typing import Dict, List, Optional
 from datetime import datetime, timedelta
 
 from core.models import get_db
+from core.crypto import encrypt_credentials, decrypt_credentials
 from services.email_service import send_notification as send_email_notification
 from services.discord_service import send_discord_notification
 from services.slack_service import send_slack_notification
@@ -34,7 +35,8 @@ def get_notification_channels(job_id: int) -> List[Dict]:
         channels = []
         for row in cursor.fetchall():
             try:
-                config = json.loads(row[1])
+                raw = decrypt_credentials(row[1]) or "{}"
+                config = json.loads(raw)
                 channels.append({
                     'channel_type': row[0],
                     'config': config
@@ -215,10 +217,11 @@ def add_notification_channel(job_id: int, channel_type: str, config: Dict) -> bo
     cursor = conn.cursor()
     
     try:
+        config_str = encrypt_credentials(json.dumps(config))
         cursor.execute('''
             INSERT INTO notification_channels (job_id, channel_type, config)
             VALUES (?, ?, ?)
-        ''', (job_id, channel_type, json.dumps(config)))
+        ''', (job_id, channel_type, config_str))
         conn.commit()
         return True
     except Exception as e:
@@ -298,7 +301,8 @@ def get_job_notification_channels(job_id: int) -> List[Dict]:
         channels = []
         for row in cursor.fetchall():
             try:
-                config = json.loads(row[2])
+                raw = decrypt_credentials(row[2]) or "{}"
+                config = json.loads(raw)
                 channels.append({
                     'id': row[0],
                     'channel_type': row[1],

@@ -14,6 +14,8 @@ class Config:
 
     # Flask Configuration
     SECRET_KEY = os.getenv('SECRET_KEY', 'dev-secret-key-change-in-production')
+    # Optional: 32-byte base64 key for encrypting auth credentials and notification config in DB
+    ENCRYPTION_KEY = os.getenv('ENCRYPTION_KEY', '')
     FLASK_ENV = os.getenv('FLASK_ENV', 'development')
     FLASK_DEBUG = os.getenv('FLASK_DEBUG', 'False').lower() == 'true'
 

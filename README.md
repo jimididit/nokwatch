@@ -1,5 +1,9 @@
 # Nokwatch
 
+[![CI](https://github.com/jimididit/nokwatch/actions/workflows/ci.yml/badge.svg)](https://github.com/jimididit/nokwatch/actions/workflows/ci.yml)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 A lightweight Python-based website monitoring tool. Can run on low-resource devices like a Raspberry Pi (see [Limited-resource devices](#limited-resource-devices)). Monitor multiple websites for content changes and get notifications by email, Discord, or Slack when your criteria are met.
 
 ## Features
@@ -21,7 +25,7 @@ A lightweight Python-based website monitoring tool. Can run on low-resource devi
 
 ## Requirements
 
-- Python 3.7+
+- Python 3.10+
 - SMTP account for email (Gmail, Outlook, Zoho, etc.); Discord/Slack optional
 - Optional: OpenAI API key for Smart Setup AI and AI content detection
 
@@ -54,7 +58,7 @@ A lightweight Python-based website monitoring tool. Can run on low-resource devi
    cp .env.example .env
    ```
 
-   Edit `.env`: set `SECRET_KEY`, SMTP settings, and optionally `OPENAI_API_KEY`.  
+   Edit `.env`: set `SECRET_KEY`, SMTP settings, and optionally `OPENAI_API_KEY` and `ENCRYPTION_KEY` (see [SECURITY.md](SECURITY.md) for encrypting auth credentials and notification config).  
    For Gmail, use an [App Password](https://support.google.com/accounts/answer/185833), not your normal password.
 
 5. **Run the app**
@@ -133,7 +137,7 @@ Adjust paths to match your install directory.
 
 ## Security
 
-- Auth and notification settings are stored in the database as plain text. Restrict access to the app and database files.
+- Auth credentials and notification channel config are stored in the database; you can encrypt them at rest by setting `ENCRYPTION_KEY` in `.env` (see [SECURITY.md](SECURITY.md)). Restrict access to the app and database files.
 - See [SECURITY.md](SECURITY.md) for details and how to report security issues.
 
 ## Troubleshooting

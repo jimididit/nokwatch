@@ -6,6 +6,7 @@ from flask import Flask, render_template, jsonify, request
 
 from core.config import Config
 from core.models import get_db, init_db
+from core.crypto import encrypt_credentials, decrypt_credentials
 from core.scheduler import start_scheduler, add_job_to_scheduler, remove_job_from_scheduler, reload_all_jobs
 from services.notification_service import (
     send_notification, add_notification_channel, remove_notification_channel,
@@ -147,7 +148,7 @@ def get_jobs():
                 'status_code_monitor': row[13],
                 'response_time_threshold': row[14],
                 'json_path': row[15] or "",
-                'auth_config': row[16],
+                'auth_config': _safe_json_load(decrypt_credentials(row[16])) if row[16] else None,
                 'proxy_url': row[17] or "",
                 'custom_user_agent': row[18] or "",
                 'capture_screenshot': bool(row[19]) if len(row) > 19 else False,
@@ -204,7 +205,7 @@ def create_job():
         response_time_threshold = data.get('response_time_threshold')
         json_path = (data.get('json_path') or "").strip() or None
         auth_config = data.get('auth_config')
-        auth_config_str = json.dumps(auth_config) if auth_config else None
+        auth_config_str = encrypt_credentials(json.dumps(auth_config)) if auth_config else None
         proxy_url = (data.get('proxy_url') or "").strip() or None
         custom_user_agent = (data.get('custom_user_agent') or "").strip() or None
         capture_screenshot = 1 if data.get('capture_screenshot') else 0
@@ -363,7 +364,7 @@ def update_job(job_id):
         
         if 'auth_config' in data:
             auth_config = data.get('auth_config')
-            auth_config_str = json.dumps(auth_config) if auth_config else None
+            auth_config_str = encrypt_credentials(json.dumps(auth_config)) if auth_config else None
             update_fields.append('auth_config = ?')
             values.append(auth_config_str)
         
@@ -607,7 +608,7 @@ def export_config():
                 'status_code_monitor': row[10],
                 'response_time_threshold': row[11],
                 'json_path': row[12] or "",
-                'auth_config': _safe_json_load(row[13]) if row[13] else None,
+                'auth_config': _safe_json_load(decrypt_credentials(row[13]) or "") if row[13] else None,
                 'proxy_url': row[14] or "",
                 'custom_user_agent': row[15] or "",
                 'capture_screenshot': bool(row[16]) if len(row) > 16 else False,
@@ -673,7 +674,7 @@ def import_config():
                 response_time_threshold = job_data.get('response_time_threshold')
                 json_path = (job_data.get('json_path') or "").strip() or None
                 auth_config = job_data.get('auth_config')
-                auth_config_str = json.dumps(auth_config) if auth_config else None
+                auth_config_str = encrypt_credentials(json.dumps(auth_config)) if auth_config else None
                 proxy_url = (job_data.get('proxy_url') or "").strip() or None
                 custom_user_agent = (job_data.get('custom_user_agent') or "").strip() or None
                 capture_screenshot = 1 if job_data.get('capture_screenshot') else 0
@@ -802,7 +803,7 @@ def run_check_now(job_id):
             'status_code_monitor': job_row[10],
             'response_time_threshold': job_row[11],
             'json_path': job_row[12] or "",
-            'auth_config': job_row[13],
+            'auth_config': decrypt_credentials(job_row[13]),
             'proxy_url': job_row[14] or "",
             'custom_user_agent': job_row[15] or "",
             'capture_screenshot': bool(job_row[16]) if len(job_row) > 16 else False,

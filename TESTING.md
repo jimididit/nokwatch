@@ -32,7 +32,7 @@ From the project root with the virtual environment activated:
 pytest
 ```
 
-This runs unit tests for core behavior (auth, templates, diff, notifications, AI with mocks, etc.). No app needs to be running.
+This runs unit tests for core behavior (auth, templates, diff, notifications, credential encryption, AI with mocks, etc.). No app needs to be running.
 
 **Optional – API/integration tests (app must be running):**
 

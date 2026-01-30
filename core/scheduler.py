@@ -5,6 +5,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 
 from core.models import get_db
+from core.crypto import decrypt_credentials
 from monitoring.monitor import check_website
 from services.notification_service import send_notification
 from services.diff_service import save_snapshot_and_diff
@@ -55,7 +56,7 @@ def run_check(job_id: int):
             'status_code_monitor': job_row[10],
             'response_time_threshold': job_row[11],
             'json_path': job_row[12] or "",
-            'auth_config': job_row[13],
+            'auth_config': decrypt_credentials(job_row[13]),
             'proxy_url': job_row[14] or "",
             'custom_user_agent': job_row[15] or "",
             'capture_screenshot': bool(job_row[16]) if len(job_row) > 16 else False,
