@@ -2,7 +2,11 @@
 import DocsLayout from '../layouts/DocsLayout.astro';
 ---
 
-<DocsLayout title="Configuration" description="Environment variables and .env">
+<DocsLayout
+  title="Configuration"
+  description="Nokwatch configuration: SECRET_KEY, SMTP settings, optional OPENAI_API_KEY and ENCRYPTION_KEY. Use .env file; never commit secrets. Example .env included."
+  keywords="Nokwatch config, .env, SMTP, SECRET_KEY, ENCRYPTION_KEY, environment variables"
+>
   <h1>Configuration</h1>
   <p>Nokwatch is configured via environment variables. Use a <code>.env</code> file in the project root (copy from <code>.env.example</code>). Never commit <code>.env</code> to version control.</p>
 

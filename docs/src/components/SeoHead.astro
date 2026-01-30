@@ -1,0 +1,148 @@
+---
+/**
+ * SEO head: meta tags, Open Graph, Twitter Card, and JSON-LD for search, SERP, AEO, and AI overviews.
+ */
+interface Props {
+  title: string;
+  description: string;
+  /** Path for canonical and OG url (e.g. /nokwatch/installation/). Uses Astro.url.pathname if not set. */
+  path?: string;
+  /** Page title for breadcrumb and Article (e.g. "Installation"). Defaults to title. */
+  pageTitle?: string;
+  /** Set to true to noindex (e.g. draft pages). */
+  noindex?: boolean;
+  /** Optional OG/Twitter image URL (absolute). */
+  image?: string;
+  /** Optional keywords for meta keywords (comma-separated). */
+  keywords?: string;
+  /** Article date modified (ISO string) for freshness. */
+  dateModified?: string;
+  /** FAQ items for FAQPage schema (AEO, AI overviews). */
+  faq?: Array<{ question: string; answer: string }>;
+}
+
+const { title, description, path, pageTitle, noindex = false, image, keywords, dateModified, faq } = Astro.props;
+
+const siteOrigin = 'https://jimididit.github.io';
+const base = '/nokwatch';
+const siteUrl = `${siteOrigin}${base}`;
+const canonicalPath = path ?? Astro.url.pathname;
+const canonicalUrl = `${siteOrigin}${canonicalPath}`.replace(/(?<!\/)$/, '/'); // ensure trailing slash
+const displayTitle = pageTitle ?? title;
+const fullTitle = `${title} | Nokwatch Docs`;
+
+// Default OG image: repo social or favicon (optional)
+const ogImage = image ?? `${siteUrl}favicon.svg`;
+
+const orgId = `${siteUrl}/#organization`;
+
+// JSON-LD: Organization (for knowledge panel / entity)
+const organization = {
+  '@context': 'https://schema.org',
+  '@type': 'Organization',
+  '@id': orgId,
+  name: 'Nokwatch',
+  url: 'https://github.com/jimididit/nokwatch',
+  description: 'Lightweight Python-based website monitoring tool for low-resource devices like Raspberry Pi. Monitor sites for content changes; get notified by email, Discord, or Slack.',
+  sameAs: ['https://github.com/jimididit/nokwatch'],
+};
+
+// JSON-LD: WebSite (for sitelinks, search box eligibility)
+const website = {
+  '@context': 'https://schema.org',
+  '@type': 'WebSite',
+  name: 'Nokwatch Documentation',
+  url: `${siteUrl}/`,
+  description: 'Documentation for Nokwatch — website monitoring, content change detection, email and Discord/Slack notifications.',
+  publisher: { '@id': orgId },
+  inLanguage: 'en',
+};
+
+// BreadcrumbList (for SERP breadcrumbs)
+const pathSegments = canonicalPath.replace(/^\/|\/$/g, '').split('/').filter(Boolean);
+const breadcrumbItems = [
+  { name: 'Nokwatch Docs', url: `${siteUrl}/` },
+  ...pathSegments.map((segment, i) => {
+    const slug = pathSegments.slice(0, i + 1).join('/');
+    const name = segment
+      .split('-')
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+      .join(' ');
+    return { name, url: `${siteUrl}/${slug}/` };
+  }),
+];
+const breadcrumb = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: breadcrumbItems.map((item, i) => ({
+    '@type': 'ListItem',
+    position: i + 1,
+    name: item.name,
+    item: item.url,
+  })),
+};
+
+// TechArticle (for rich results, AEO, AI overviews)
+const article = {
+  '@context': 'https://schema.org',
+  '@type': 'TechArticle',
+  headline: displayTitle,
+  description,
+  url: canonicalUrl,
+  dateModified: dateModified ?? new Date().toISOString().split('T')[0],
+  author: {
+    '@type': 'Organization',
+    name: 'Nokwatch',
+    url: 'https://github.com/jimididit/nokwatch',
+  },
+  publisher: {
+    '@type': 'Organization',
+    name: 'Nokwatch',
+    url: 'https://github.com/jimididit/nokwatch',
+  },
+  mainEntityOfPage: {
+    '@type': 'WebPage',
+    '@id': canonicalUrl,
+  },
+};
+
+const graph: object[] = [organization, website, breadcrumb, article];
+if (faq?.length) {
+  graph.push({
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: faq.map(({ question, answer }) => ({
+      '@type': 'Question',
+      name: question,
+      acceptedAnswer: { '@type': 'Answer', text: answer },
+    })),
+  });
+}
+---
+
+<!-- Primary meta -->
+<title>{fullTitle}</title>
+<meta name="description" content={description} />
+{keywords && <meta name="keywords" content={keywords} />}
+<link rel="canonical" href={canonicalUrl} />
+<meta name="robots" content={noindex ? 'noindex, nofollow' : 'index, follow'} />
+<meta name="theme-color" content="#0f0f0f" />
+
+<!-- Open Graph (Facebook, LinkedIn, many crawlers) -->
+<meta property="og:type" content="article" />
+<meta property="og:title" content={fullTitle} />
+<meta property="og:description" content={description} />
+<meta property="og:url" content={canonicalUrl} />
+<meta property="og:site_name" content="Nokwatch Documentation" />
+<meta property="og:locale" content="en_US" />
+<meta property="og:image" content={ogImage} />
+<meta property="og:image:alt" content="Nokwatch Docs" />
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content={fullTitle} />
+<meta name="twitter:description" content={description} />
+<meta name="twitter:image" content={ogImage} />
+
+<!-- JSON-LD structured data (SERP, AEO, AI overviews) -->
+<script type="application/ld+json" set:html={JSON.stringify({ '@context': 'https://schema.org', '@graph': graph })} />

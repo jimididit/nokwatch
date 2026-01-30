@@ -3,13 +3,28 @@ import '../styles/global.css';
 import Header from '../components/Header.astro';
 import Sidebar from '../components/Sidebar.astro';
 import Footer from '../components/Footer.astro';
+import SeoHead from '../components/SeoHead.astro';
 
 interface Props {
   title: string;
   description?: string;
+  /** SEO: path for canonical (default: current URL path) */
+  path?: string;
+  /** SEO: page title for breadcrumb/Article */
+  pageTitle?: string;
+  /** SEO: noindex this page */
+  noindex?: boolean;
+  /** SEO: OG/Twitter image URL */
+  image?: string;
+  /** SEO: meta keywords */
+  keywords?: string;
+  /** SEO: article date modified (ISO) */
+  dateModified?: string;
+  /** SEO: FAQ items for FAQPage schema */
+  faq?: Array<{ question: string; answer: string }>;
 }
 
-const { title, description = 'Nokwatch documentation' } = Astro.props;
+const { title, description = 'Nokwatch documentation', path, pageTitle, noindex, image, keywords, dateModified, faq } = Astro.props;
 ---
 
 <!doctype html>
@@ -17,13 +32,23 @@ const { title, description = 'Nokwatch documentation' } = Astro.props;
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content={description} />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="google-site-verification" content="RPMjrIV-sxdXfXyrXWzRoXxAw02Xg1zknH7MzwzbrJw" />
+    <SeoHead
+      title={title}
+      description={description}
+      path={path}
+      pageTitle={pageTitle}
+      noindex={noindex}
+      image={image}
+      keywords={keywords}
+      dateModified={dateModified}
+      faq={faq}
+    />
+    <link rel="icon" type="image/svg+xml" href="/nokwatch/favicon.svg" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
     <script async defer src="https://buttons.github.io/buttons.js"></script>
-    <title>{title} | Nokwatch Docs</title>
   </head>
   <body class="min-h-screen flex flex-col">
     <Header />

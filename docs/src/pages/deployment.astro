@@ -2,7 +2,11 @@
 import DocsLayout from '../layouts/DocsLayout.astro';
 ---
 
-<DocsLayout title="Deployment" description="Production, gunicorn, systemd, Raspberry Pi">
+<DocsLayout
+  title="Deployment"
+  description="Deploy Nokwatch in production: gunicorn WSGI server, systemd service for Raspberry Pi, nginx reverse proxy and HTTPS. Example systemd unit included."
+  keywords="gunicorn, systemd, Raspberry Pi deployment, nginx, HTTPS, production"
+>
   <h1>Deployment</h1>
   <p>For production (e.g. Raspberry Pi), use a WSGI server and run Nokwatch as a system service.</p>
 

@@ -2,7 +2,11 @@
 import DocsLayout from '../layouts/DocsLayout.astro';
 ---
 
-<DocsLayout title="Notifications" description="Email, Discord, Slack, cooldown">
+<DocsLayout
+  title="Notifications"
+  description="Nokwatch notifications: email (SMTP), Discord webhook, Slack webhook. Multiple channels per monitor, cooldown to avoid spam. Test email from Web UI."
+  keywords="email notifications, Discord webhook, Slack webhook, notification cooldown, SMTP test"
+>
   <h1>Notifications</h1>
   <p>When a monitor matches (or meets HTTP/response-time conditions), Nokwatch can notify you via email, Discord, and Slack. You can use multiple channels per monitor.</p>
 
