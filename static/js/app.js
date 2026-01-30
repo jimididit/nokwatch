@@ -33,14 +33,35 @@ document.addEventListener('DOMContentLoaded', () => {
 function initializeApp() {
     setupEventListeners();
     injectHeaderIcons();
+    updateHeaderStatus();
     loadJobs();
     loadStatistics();
     loadTemplates();
     startAutoRefresh();
+    setInterval(updateHeaderStatus, 30000); // refresh status every 30s
     
     // Keyboard shortcuts (desktop only)
     if (window.innerWidth >= 768) {
         document.addEventListener('keydown', handleKeyboardShortcuts);
+    }
+}
+
+// Update header status from /api/health (Running vs Offline)
+async function updateHeaderStatus() {
+    const textEl = document.getElementById('status-text');
+    const dotEl = document.querySelector('.status-dot');
+    if (!textEl) return;
+    try {
+        const response = await fetch('/api/health', { method: 'GET' });
+        const data = await response.json();
+        const healthy = response.ok && (data.status === 'healthy');
+        textEl.textContent = healthy ? 'Running' : 'Degraded';
+        if (dotEl) {
+            dotEl.classList.toggle('status-dot-offline', !healthy);
+        }
+    } catch (e) {
+        textEl.textContent = 'Offline';
+        if (dotEl) dotEl.classList.add('status-dot-offline');
     }
 }
 
@@ -441,25 +462,36 @@ function handleImportFile(e) {
     reader.readAsText(file);
 }
 
+// Period label for display (matches stats-period options)
+function getPeriodLabel(hours) {
+    if (hours === 24) return 'Last 24 hours';
+    if (hours === 48) return 'Last 48 hours';
+    if (hours === 168) return 'Last 7 days';
+    return `Last ${hours} hours`;
+}
+
 // Load and render statistics
 async function loadStatistics() {
     const periodEl = document.getElementById('stats-period');
     const hours = periodEl ? parseInt(periodEl.value, 10) || 24 : 24;
+    const periodLabel = getPeriodLabel(hours);
+    let overTime = [];
     try {
         const response = await fetch(`/api/statistics?hours=${hours}`);
-        if (!response.ok) return;
-        const data = await response.json();
-        const g = data.global || {};
-        document.getElementById('stat-total-checks').textContent = g.total_checks ?? '—';
-        document.getElementById('stat-success-rate').textContent = g.success_rate_pct != null ? g.success_rate_pct + '%' : '—';
-        document.getElementById('stat-matches').textContent = g.match_count ?? '—';
-        document.getElementById('stat-avg-response').textContent =
-            g.avg_response_time_seconds != null ? g.avg_response_time_seconds + 's' : '—';
-        const overTime = data.checks_over_time || [];
-        renderStatsChart(overTime);
+        if (response.ok) {
+            const data = await response.json();
+            const g = data.global || {};
+            document.getElementById('stat-total-checks').textContent = g.total_checks ?? '—';
+            document.getElementById('stat-success-rate').textContent = g.success_rate_pct != null ? g.success_rate_pct + '%' : '—';
+            document.getElementById('stat-matches').textContent = g.match_count ?? '—';
+            document.getElementById('stat-avg-response').textContent =
+                g.avg_response_time_seconds != null ? g.avg_response_time_seconds + 's' : '—';
+            overTime = data.checks_over_time || [];
+        }
     } catch (e) {
         console.error('Error loading statistics:', e);
     }
+    renderStatsChart(overTime, periodLabel);
 }
 
 // Populate tag filter dropdown and show/hide row
@@ -491,19 +523,40 @@ function onTagFilterChange() {
     loadJobs(value || undefined);
 }
 
-function renderStatsChart(overTime) {
+function formatChartTime(periodStart) {
+    if (!periodStart) return '';
+    const s = String(periodStart).replace('T', ' ').trim();
+    if (s.length >= 16) return s.slice(0, 16);
+    return s;
+}
+
+function renderStatsChart(overTime, periodLabel) {
     const container = document.getElementById('stats-chart');
+    const captionEl = document.getElementById('stats-chart-caption');
+    const legendEl = document.getElementById('stats-chart-legend');
     if (!container) return;
+    if (captionEl) captionEl.textContent = 'Showing: ' + (periodLabel || 'Last 24 hours');
+    if (legendEl) legendEl.textContent = '';
     if (!overTime.length) {
-        container.innerHTML = '<p class="text-muted" style="margin:0;font-size:0.875rem;">No data for this period</p>';
+        container.innerHTML = '<div class="stats-chart-empty"><p class="text-muted" style="margin:0;font-size:0.875rem;">No checks in this period</p><p class="text-muted" style="margin:0.25rem 0 0;font-size:0.8125rem;">Data appears here once your monitors have run.</p></div>';
         return;
     }
     const maxTotal = Math.max(...overTime.map(d => d.total || 0), 1);
-    container.innerHTML = overTime.map(d => {
+    const yAxisHtml = `<div class="stats-chart-y-axis" aria-hidden="true"><span class="stats-y-max">${maxTotal}</span><span class="stats-y-zero">0</span></div>`;
+    const barsHtml = `<div class="stats-chart-bars">${overTime.map(d => {
         const pct = Math.round((100 * (d.total || 0)) / maxTotal);
         const label = d.period_start ? d.period_start.replace('T', ' ').slice(0, 16) : '';
-        return `<div class="stats-chart-bar" style="height:${Math.max(pct, 4)}%" title="${escapeHtml(label)}: ${d.total} checks" role="img" aria-label="${d.total} checks"></div>`;
-    }).join('');
+        const total = d.total != null ? d.total : 0;
+        return `<div class="stats-chart-bar-wrap" title="${escapeHtml(label)}: ${total} checks" role="img" aria-label="${total} checks"><span class="stats-chart-bar-value">${total}</span><div class="stats-chart-bar" style="height:${Math.max(pct, 4)}%"></div></div>`;
+    }).join('')}</div>`;
+    container.innerHTML = `<div class="stats-chart-inner">${yAxisHtml}${barsHtml}</div>`;
+    const first = overTime[0]?.period_start;
+    const last = overTime[overTime.length - 1]?.period_start;
+    if (legendEl && (first || last)) {
+        const timeRange = (formatChartTime(first) + (first && last ? ' — ' : '') + formatChartTime(last)).trim();
+        legendEl.textContent = [timeRange, '1 column = 1 hour', 'Bar height = number of checks'].filter(Boolean).join(' • ');
+        legendEl.setAttribute('aria-hidden', 'false');
+    }
 }
 
 // Load all jobs from API (optional tag filter)

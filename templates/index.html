@@ -29,7 +29,7 @@
                     <span>+</span> Add Monitor
                 </button>
                 <div class="header-more-wrap" id="header-more-wrap" aria-hidden="true">
-                    <button type="button" class="btn btn-icon header-more-btn" id="header-more-btn" aria-label="More actions" aria-expanded="false" aria-haspopup="true">
+                    <button type="button" class="btn btn-icon header-more-btn" id="header-more-btn" aria-label="More actions" aria-expanded="false" aria-haspopup="true" title="More actions">
                         <svg class="icon-ellipsis" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg>
                     </button>
                     <div class="header-more-dropdown" id="header-more-dropdown" role="menu">
@@ -97,7 +97,16 @@
             </div>
             <details class="stats-chart-details">
                 <summary>Checks over time</summary>
-                <div class="stats-chart" id="stats-chart"></div>
+                <div class="stats-chart-wrapper">
+                    <p class="stats-chart-caption" id="stats-chart-caption" aria-live="polite">Showing: Last 24 hours</p>
+                    <div class="stats-chart" id="stats-chart">
+                        <div class="stats-chart-empty">
+                            <p class="text-muted" style="margin:0;font-size:0.875rem;">No checks in this period</p>
+                            <p class="text-muted" style="margin:0.25rem 0 0;font-size:0.8125rem;">Data appears here once your monitors have run.</p>
+                        </div>
+                    </div>
+                    <p class="stats-chart-legend text-muted" id="stats-chart-legend" aria-hidden="true"></p>
+                </div>
             </details>
         </section>
 
