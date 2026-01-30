@@ -50,3 +50,6 @@ Thumbs.db
 # Logs
 *.log
 logs/
+
+# Screenshots
+static/screenshots

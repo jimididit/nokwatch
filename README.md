@@ -1,136 +1,112 @@
 # Nokwatch
 
-A lightweight Python-based website monitoring tool designed to run efficiently on low resource devices like a Raspberry Pi. Monitor multiple websites for content changes and receive email notifications when your specified criteria are met.
-
-## Overview
-
-Nokwatch enables you to continuously monitor websites for specific content patterns. Whether you're tracking waitlist openings, product availability, or any content changes, Nokwatch checks your configured URLs at regular intervals and sends email alerts when matches are found.
+A lightweight Python-based website monitoring tool. Can run on low-resource devices like a Raspberry Pi (see [Limited-resource devices](#limited-resource-devices)). Monitor multiple websites for content changes and get notifications by email, Discord, or Slack when your criteria are met.
 
 ## Features
 
-- **Multiple URL Monitoring**: Monitor multiple websites independently with custom configurations
-- **Flexible Content Matching**: Use simple string matching or regex patterns for precise content detection
-- **Configurable Check Intervals**: Set check frequency from 30 seconds to 1 hour per monitor
-- **Email Notifications**: Receive email alerts when matches are found
-- **Check History**: View detailed history of all checks for each monitor
-- **Modern Web UI**: Sleek, dark-themed, mobile-first web interface
-- **Resource Efficient**: Optimized for Raspberry Pi 4 (4GB RAM) and low-resource environments
-- **Manual Testing**: Test monitors immediately without waiting for scheduled checks
+- **Multiple monitors** – Track many URLs with separate names, intervals, and patterns
+- **Content matching** – String or regex; match when the page contains (or does not contain) text
+- **Notifications** – Email, Discord webhooks, and Slack webhooks; multiple channels per monitor
+- **Notification cooldown** – Throttle alerts so you don’t get spammed
+- **HTTP status & response time** – Alert on specific status codes or when the site is slow
+- **JSON/API monitoring** – Monitor JSON responses using JSONPath
+- **Auth** – Basic Auth, custom headers, and cookies for protected pages
+- **Tags** – Organize and filter monitors by tags
+- **Templates** – Start from pre-built templates (e.g. waitlist, availability, status page)
+- **Smart Setup** – Enter a URL and get suggested name, pattern, and interval (optional AI)
+- **AI content detection** – Use OpenAI to detect semantic changes (optional; requires API key)
+- **Check history** – View past checks, HTTP status, content diff, and optional screenshots
+- **Export/Import** – Backup or move your monitors as JSON
+- **Web UI** – Dark-themed, mobile-friendly interface; run checks on demand
 
 ## Requirements
 
-- Python 3.7 or higher
-- Raspberry Pi 4 (or any Linux/Windows machine)
-- SMTP email account (Gmail, Outlook, Zoho, etc.)
+- Python 3.7+
+- SMTP account for email (Gmail, Outlook, Zoho, etc.); Discord/Slack optional
+- Optional: OpenAI API key for Smart Setup AI and AI content detection
 
 ## Installation
 
-### 1. Clone the Repository
+1. **Clone and enter the project**
+
+   ```bash
+   git clone https://github.com/jimididit/nokwatch.git
+   cd nokwatch
+   ```
+
+2. **Create and activate a virtual environment**
+
+   ```bash
+   python3 -m venv .venv
+   # Windows (PowerShell): .venv\Scripts\Activate.ps1
+   # Linux/macOS: source .venv/bin/activate
+   ```
+
+3. **Install dependencies**
+
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+4. **Configure environment**
+
+   ```bash
+   cp .env.example .env
+   ```
+
+   Edit `.env`: set `SECRET_KEY`, SMTP settings, and optionally `OPENAI_API_KEY`.  
+   For Gmail, use an [App Password](https://support.google.com/accounts/answer/185833), not your normal password.
+
+5. **Run the app**
+
+   ```bash
+   python app.py
+   ```
+
+   Open `http://localhost:5000` in your browser. The database is created automatically on first run.
+
+## Usage
+
+1. Open the web UI at `http://localhost:5000` (or your server’s IP and port).
+2. Click **Add Monitor** and fill in name, URL, check interval, match type, pattern, and notification email.
+3. Use **Advanced Options** to add Discord/Slack, set cooldown, HTTP status or response time alerts, JSON path, auth, tags, or AI detection.
+4. Use **Smart Setup** to paste a URL and get suggested settings, or **Start from template** when adding a monitor.
+5. Use the play button on a monitor card to run a check immediately; open the card to see history, diff, and screenshots.
+
+See [TESTING.md](TESTING.md) for step-by-step checks and troubleshooting.
+
+## Limited-resource devices
+
+If you run Nokwatch on a device with limited disk or memory, use the minimal requirements for a smaller install (no AI features, no screenshots, no test deps). Core monitoring, notifications, and the Web UI still work:
 
 ```bash
-git clone https://github.com/jimididit/nokwatch.git
-cd nokwatch
+pip install -r requirements-minimal.txt
 ```
 
-### 3. Create Virtual Environment (Recommended)
+## Production (e.g. Raspberry Pi)
 
-```bash
-python3 -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-```
-
-### 4. Install Dependencies
-
-```bash
-pip install -r requirements.txt
-```
-
-### 5. Configure Environment Variables
-
-Copy the example environment file and edit it:
-
-```bash
-cp .env.example .env
-```
-
-Edit `.env` with your settings:
-
-```env
-# Flask Configuration
-FLASK_ENV=production
-FLASK_DEBUG=False
-SECRET_KEY=your-secret-key-here-change-in-production
-
-# Database
-DATABASE_PATH=monitor.db
-
-# SMTP Configuration
-SMTP_HOST=smtp.<gmail | outlook | zoho>.com
-SMTP_PORT=587
-SMTP_USERNAME=your-email@<provider>.com
-SMTP_PASSWORD=your-password
-SMTP_USE_TLS=True
-
-# Application Settings
-DEFAULT_CHECK_INTERVAL=300
-```
-
-**Important Notes:**
-
-- For Gmail, you'll need to use an [App Password](https://support.google.com/accounts/answer/185833) instead of your regular password
-- For Zoho, use your regular password. If you have 2FA enabled, you may need to generate an App Password from your Zoho account settings
-- Generate a strong `SECRET_KEY` for production (you can use: `python -c "import secrets; print(secrets.token_hex(32))"`)
-
-### 6. Initialize Database
-
-The database will be created automatically on first run, but you can also initialize it manually:
-
-```bash
-python models.py
-```
-
-## Running the Application
-
-### Development Mode
-
-```bash
-python app.py
-```
-
-The application will be available at `http://localhost:5000`
-
-### Production Mode (Raspberry Pi)
-
-For production deployment on Raspberry Pi, use a production WSGI server like Gunicorn:
-
-```bash
-pip install gunicorn
-gunicorn -w 2 -b 0.0.0.0:5000 app:app
-```
+- For a smaller install on limited resources, see [Limited-resource devices](#limited-resource-devices).
+- Use a production WSGI server:  
+  `pip install gunicorn` then  
+  `gunicorn -w 2 -b 0.0.0.0:5000 app:app`
+- Run as a systemd service so it starts on boot (example below).
+- Use HTTPS via a reverse proxy (e.g. nginx). Never commit `.env` or your database.
 
 ## Running as a System Service (Raspberry Pi)
 
-Create a systemd service file for automatic startup:
-
-### 1. Create Service File
-
-```bash
-sudo nano /etc/systemd/system/nokwatch.service
-```
-
-### 2. Add Service Configuration
+Create `/etc/systemd/system/nokwatch.service`:
 
 ```ini
 [Unit]
-Description=Nokwatch Website Monitor Service
+Description=Nokwatch Website Monitor
 After=network.target
 
 [Service]
 Type=simple
 User=pi
 WorkingDirectory=/home/pi/nokwatch
-Environment="PATH=/home/pi/nokwatch/venv/bin"
-ExecStart=/home/pi/nokwatch/venv/bin/gunicorn -w 2 -b 0.0.0.0:5000 app:app
+Environment="PATH=/home/pi/nokwatch/.venv/bin"
+ExecStart=/home/pi/nokwatch/.venv/bin/gunicorn -w 2 -b 0.0.0.0:5000 app:app
 Restart=always
 RestartSec=10
 
@@ -138,233 +114,37 @@ RestartSec=10
 WantedBy=multi-user.target
 ```
 
-**Note:** Adjust paths (`/home/pi/nokwatch`) to match your installation directory.
+Then: `sudo systemctl daemon-reload && sudo systemctl enable nokwatch.service && sudo systemctl start nokwatch.service`.  
+Adjust paths to match your install directory.
 
-### 3. Enable and Start Service
+## API
 
-```bash
-sudo systemctl daemon-reload
-sudo systemctl enable nokwatch.service
-sudo systemctl start nokwatch.service
-```
+- `GET /api/jobs` – List jobs (optional `?tag=name`)
+- `POST /api/jobs` – Create job
+- `PUT /api/jobs/<id>` – Update job
+- `DELETE /api/jobs/<id>` – Delete job
+- `GET /api/jobs/<id>/history` – Check history
+- `POST /api/jobs/<id>/toggle` – Toggle active/inactive
+- `POST /api/jobs/<id>/run-check` – Run check now
+- `POST /api/test-email` – Send test email
+- `GET /api/health` – Health check
+- `GET /api/templates` – List monitor templates
+- `POST /api/wizard/analyze` – Smart Setup analysis
 
-### 4. Check Service Status
+## Security
 
-```bash
-sudo systemctl status nokwatch.service
-```
-
-### 5. View Logs
-
-```bash
-sudo journalctl -u nokwatch.service -f
-```
-
-## Transferring to Raspberry Pi
-
-### Method 1: Using SCP (Secure Copy)
-
-From your Windows machine:
-
-```powershell
-scp -r C:\path\to\nokwatch pi@raspberrypi.local:/home/pi/nokwatch
-```
-
-### Method 2: Using Git
-
-On Raspberry Pi:
-
-```bash
-git clone https://github.com/jimididit/nokwatch.git
-cd nokwatch
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-cp .env.example .env
-# Edit .env with your settings
-```
-
-### Method 3: Using rsync
-
-From your Windows machine (if rsync is available):
-
-```bash
-rsync -avz --exclude 'venv' --exclude '__pycache__' --exclude '*.db' /path/to/nokwatch/ pi@raspberrypi.local:/home/pi/nokwatch/
-```
-
-## Testing
-
-### Manual Testing
-
-You can test the monitoring functionality without waiting for real websites to change:
-
-**Option 1: Run Check Now Button**
-
-- In the web UI, each monitor card has a play button
-- Click it to immediately trigger a check for that monitor
-- Results will appear in the check history
-
-**Option 2: Test Script**
-
-- Run the test script: `python test_monitor.py`
-- This provides several test scenarios:
-  - Test with httpbin.org (known test service)
-  - Test pattern matching (string/regex)
-  - Test email notifications
-- Useful for verifying functionality before deploying
-
-**Option 3: Test Email Button**
-
-- Click "Test Email" in the web UI header
-- Sends a test email to verify SMTP configuration
-
-### Test URLs for Development
-
-You can use these test URLs to verify monitoring works:
-
-- `https://httpbin.org/html` - Always contains "Herman Melville" text
-- `https://httpbin.org/json` - Returns JSON data
-- `https://example.com` - Simple static website
-
-Example test monitor:
-
-- URL: `https://httpbin.org/html`
-- Match Type: String
-- Pattern: `Herman Melville`
-- Condition: Contains
-- This should always find a match!
-
-## Usage
-
-### Web Interface
-
-1. Open your browser and navigate to `http://raspberrypi-ip:5000` (or `http://localhost:5000` locally)
-2. Click "Add Monitor" to create a new monitoring job
-3. Fill in the form:
-   - **Job Name**: A descriptive name for this monitor
-   - **URL**: The website URL to monitor
-   - **Check Interval**: How often to check (30s to 1h)
-   - **Match Type**: String (exact text) or Regex (pattern matching)
-   - **Pattern**: The text or regex pattern to search for
-   - **Match Condition**: Contains or Does Not Contain
-   - **Email Recipient**: Email address for notifications
-4. Click "Save" to start monitoring
-
-### Example Use Cases
-
-**Waitlist Monitoring:**
-
-- URL: `https://example.com/waitlist`
-- Match Type: String
-- Pattern: `Waitlist Open`
-- Condition: Contains
-- Check Interval: 5 minutes
-
-**Content Change Detection:**
-
-- URL: `https://example.com/page`
-- Match Type: Regex
-- Pattern: `Available|In Stock|Buy Now`
-- Condition: Contains
-- Check Interval: 1 minute
-
-## API Endpoints
-
-The application provides a REST API for programmatic access:
-
-- `GET /api/jobs` - List all monitoring jobs
-- `POST /api/jobs` - Create a new job
-- `PUT /api/jobs/<id>` - Update a job
-- `DELETE /api/jobs/<id>` - Delete a job
-- `GET /api/jobs/<id>/history` - Get check history for a job
-- `POST /api/jobs/<id>/toggle` - Toggle job active/inactive
-- `POST /api/jobs/<id>/run-check` - Manually trigger a check
-- `POST /api/test-email` - Send a test email
-- `GET /api/health` - Health check endpoint
+- Auth and notification settings are stored in the database as plain text. Restrict access to the app and database files.
+- See [SECURITY.md](SECURITY.md) for details and how to report security issues.
 
 ## Troubleshooting
 
-### Email Notifications Not Working
-
-1. Verify SMTP credentials in `.env`
-2. For Gmail, ensure you're using an App Password, not your regular password
-3. For Zoho, ensure you're using the correct password. If 2FA is enabled, use an App Password from Zoho account settings
-4. Check firewall settings - port 587 (TLS) or 465 (SSL) must be open
-5. Check application logs for error messages
-
-### Database Issues
-
-- The database file (`monitor.db`) is created automatically
-- Ensure the application has write permissions in the directory
-- If you need to reset, delete `monitor.db` and restart the application
-
-### Scheduler Not Running Checks
-
-1. Verify jobs are marked as "Active"
-2. Check application logs for scheduler errors
-3. Ensure the scheduler started successfully (check logs on startup)
-
-### Performance Issues on Raspberry Pi
-
-- Reduce check intervals for less frequent monitoring
-- Limit the number of active monitors
-- Ensure adequate free memory (check with `free -h`)
-- Consider using a swap file if memory is constrained
-
-## Security Considerations
-
-- **Never commit `.env` file** to version control
-- Use strong `SECRET_KEY` in production
-- Run the application as a non-root user
-- Use HTTPS in production (set up reverse proxy with nginx)
-- Keep dependencies updated for security patches
-
-## Project Structure
-
-```bash
-nokwatch/
-├── app.py                 # Main Flask application
-├── models.py              # Database models
-├── monitor.py             # Core monitoring logic
-├── email_service.py       # Email notification service
-├── scheduler.py           # Task scheduler
-├── config.py              # Configuration management
-├── test_monitor.py        # Testing utilities
-├── requirements.txt       # Python dependencies
-├── LICENSE                # MIT License
-├── .env.example           # Environment variables template
-├── static/                # Frontend assets
-│   ├── css/
-│   │   └── style.css
-│   └── js/
-│       └── app.js
-├── templates/             # HTML templates
-│   ├── index.html
-│   └── base.html
-└── README.md             # This file
-```
+- **Email not received** – Check `.env` SMTP settings; use an App Password for Gmail; check spam and firewall (port 587 or 465).
+- **Checks not running** – Ensure the monitor is Active and the app/scheduler started without errors (check logs).
+- **Database issues** – Ensure the app has write permission in the project directory. To reset, remove `monitor.db` and restart (DB will be recreated).
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## Contributing
-
-Contributions are welcome! Please ensure code follows PEP 8 style guidelines and includes appropriate error handling. When contributing:
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Submit a pull request
-
-## Support
-
-For issues or questions:
-
-1. Check the troubleshooting section above
-2. Review application logs
-3. Check that all dependencies are installed correctly
-4. Open an issue on GitHub if you encounter bugs
+MIT – see [LICENSE](LICENSE).
 
 ## Credits
 

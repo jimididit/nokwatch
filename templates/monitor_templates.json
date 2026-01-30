@@ -1,0 +1,57 @@
+[
+  {
+    "id": "waitlist",
+    "name": "Waitlist monitoring",
+    "description": "Watch for waitlist openings or closures (e.g. housing, events).",
+    "check_interval": 3600,
+    "match_type": "string",
+    "match_condition": "contains",
+    "match_pattern": "waitlist is open",
+    "match_pattern_placeholder": "e.g., waitlist is open, applications accepted",
+    "notification_throttle_seconds": 3600
+  },
+  {
+    "id": "product_availability",
+    "name": "Product availability",
+    "description": "Alert when a product comes in stock or goes out of stock.",
+    "check_interval": 300,
+    "match_type": "string",
+    "match_condition": "contains",
+    "match_pattern": "In Stock",
+    "match_pattern_placeholder": "e.g., In Stock, Add to Cart",
+    "notification_throttle_seconds": 1800
+  },
+  {
+    "id": "price_monitoring",
+    "name": "Price monitoring",
+    "description": "Detect price changes or sale announcements.",
+    "check_interval": 3600,
+    "match_type": "string",
+    "match_condition": "contains",
+    "match_pattern": "$",
+    "match_pattern_placeholder": "e.g., price, discount, sale",
+    "notification_throttle_seconds": 7200
+  },
+  {
+    "id": "job_postings",
+    "name": "Job postings",
+    "description": "Monitor for new job listings or role changes.",
+    "check_interval": 3600,
+    "match_type": "string",
+    "match_condition": "contains",
+    "match_pattern": "Apply",
+    "match_pattern_placeholder": "e.g., Apply Now, We're hiring",
+    "notification_throttle_seconds": 3600
+  },
+  {
+    "id": "status_page",
+    "name": "Status page monitoring",
+    "description": "Alert when a status page shows an incident or outage.",
+    "check_interval": 300,
+    "match_type": "string",
+    "match_condition": "contains",
+    "match_pattern": "incident",
+    "match_pattern_placeholder": "e.g., incident, outage, degraded",
+    "notification_throttle_seconds": 900
+  }
+]
