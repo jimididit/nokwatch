@@ -55,3 +55,6 @@ logs/
 
 # Screenshots
 static/screenshots
+
+# Documentation
+docs/
