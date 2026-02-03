@@ -6,6 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "nokwatch-scan"
 version = "0.1.0"
 description = "Listing scan plugin for Nokwatch"
+readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
     "requests",
