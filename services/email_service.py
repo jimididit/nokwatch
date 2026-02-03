@@ -58,7 +58,16 @@ You can now use the Website Monitor application to receive notifications when yo
         else:
             match_text = "MATCH FOUND" if match_status.get('match_found') else "NO MATCH"
             condition_text = "contains" if job.get('match_condition') == 'contains' else "does not contain"
-            
+            matched_items = match_status.get('matched_items') or []
+            items_section = ""
+            if matched_items:
+                items_section = "\n\nNew items:\n"
+                for it in matched_items:
+                    items_section += f"- {it.get('title', 'N/A')} | {it.get('price', '')} | {it.get('url', '')}\n"
+            screenshot_note = ""
+            if match_status.get('screenshot_path'):
+                screenshot_note = f"\nScreenshot: {match_status.get('screenshot_path')}"
+
             text_body = f"""
 Website Monitor Alert
 
@@ -67,11 +76,12 @@ URL: {job['url']}
 Status: {match_text}
 
 The website was checked and the pattern "{job.get('match_pattern', 'N/A')}" ({condition_text}) was found.
-
+{items_section}
 Check Details:
 - Response Time: {match_status.get('response_time', 0):.2f} seconds
 - Content Length: {match_status.get('content_length', 0)} characters
 - Check Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+{screenshot_note}
 
 Visit the monitoring dashboard to view more details.
             """
@@ -119,7 +129,19 @@ Visit the monitoring dashboard to view more details.
         else:
             match_text = "MATCH FOUND" if match_status.get('match_found') else "NO MATCH"
             condition_text = "contains" if job.get('match_condition') == 'contains' else "does not contain"
-            
+            matched_items = match_status.get('matched_items') or []
+            items_html = ""
+            if matched_items:
+                items_html = "<hr><div class='detail'><strong>New items:</strong></div><ul>"
+                for it in matched_items:
+                    url = it.get('url', '')
+                    title = it.get('title', 'N/A')
+                    price = it.get('price', '')
+                    items_html += f"<li><a href='{url}'>{title}</a> | {price}</li>"
+                items_html += "</ul>"
+            if match_status.get('screenshot_path'):
+                items_html += f"<div class='detail'><strong>Screenshot:</strong> {match_status.get('screenshot_path')}</div>"
+
             html_body = f"""
 <!DOCTYPE html>
 <html>
@@ -144,6 +166,7 @@ Visit the monitoring dashboard to view more details.
             <div class="detail"><strong>Status:</strong> <span style="color: #4CAF50; font-weight: bold;">{match_text}</span></div>
             <div class="detail"><strong>Pattern:</strong> {job.get('match_pattern', 'N/A')}</div>
             <div class="detail"><strong>Condition:</strong> {condition_text}</div>
+            {items_html}
             <hr>
             <div class="detail"><strong>Response Time:</strong> {match_status.get('response_time', 0):.2f} seconds</div>
             <div class="detail"><strong>Content Length:</strong> {match_status.get('content_length', 0)} characters</div>

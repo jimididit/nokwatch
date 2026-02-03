@@ -7,6 +7,8 @@ from flask import Flask, render_template, jsonify, request
 from core.config import Config
 from core.models import get_db, init_db
 from core.crypto import encrypt_credentials, decrypt_credentials
+from core.plugins import load_plugins, get_menu_items
+from core.plugin_registry import AVAILABLE_PLUGINS
 from core.scheduler import start_scheduler, add_job_to_scheduler, remove_job_from_scheduler, reload_all_jobs
 from services.notification_service import (
     send_notification, add_notification_channel, remove_notification_channel,
@@ -30,8 +32,17 @@ app.config['SECRET_KEY'] = Config.SECRET_KEY
 # Initialize database
 init_db()
 
+# Load plugins (before scheduler so handlers are registered)
+load_plugins(app, get_db)
+
 # Start scheduler
 start_scheduler()
+
+
+@app.context_processor
+def inject_plugin_menu():
+    """Inject plugin menu items for templates."""
+    return {"plugin_menu_items": get_menu_items()}
 
 @app.route('/')
 def index():
@@ -985,6 +996,153 @@ def delete_notification_channel(job_id, channel_id):
     except Exception as e:
         logger.error(f"Error removing notification channel: {e}", exc_info=True)
         return jsonify({'error': 'Failed to remove notification channel'}), 500
+
+
+# --- Modules UI (plugin discovery, install, uninstall) ---
+
+def _is_plugin_installed(pypi_name: str) -> bool:
+    """Check if a plugin package is installed."""
+    try:
+        import importlib.metadata
+        importlib.metadata.distribution(pypi_name)
+        return True
+    except importlib.metadata.PackageNotFoundError:
+        return False
+
+
+@app.route('/modules')
+def modules_page():
+    """Modules/Extensions settings page."""
+    return render_template('modules.html')
+
+
+@app.route('/api/modules', methods=['GET'])
+def list_modules():
+    """List available plugins and their installed status."""
+    plugins = []
+    for p in AVAILABLE_PLUGINS:
+        plugins.append({
+            "id": p["id"],
+            "pypi_name": p["pypi_name"],
+            "name": p["name"],
+            "description": p["description"],
+            "installed": _is_plugin_installed(p["pypi_name"]),
+        })
+    return jsonify({
+        "plugins": plugins,
+        "restart_after_plugin_change": getattr(Config, "RESTART_AFTER_PLUGIN_CHANGE", True),
+    })
+
+
+def _do_restart() -> bool:
+    """
+    Schedule a graceful exit. The app exits after a short delay so the HTTP response
+    can be sent. The user (or process manager) restarts the app.
+    Best practice: when running under systemd/Docker, set RESTART_AFTER_PLUGIN_CHANGE=false
+    and use systemctl restart / docker restart instead.
+    """
+    import os
+    import threading
+
+    def _exit_after_delay():
+        import time
+        time.sleep(2)
+        logger.info("Exiting for restart. Run the app again to continue.")
+        os._exit(0)
+
+    try:
+        t = threading.Thread(target=_exit_after_delay, daemon=False)
+        t.start()
+        return True
+    except Exception as e:
+        logger.warning("Could not schedule restart: %s", e)
+        return False
+
+
+def _schedule_restart() -> bool:
+    """Schedule restart if config allows. Returns True if restart was scheduled."""
+    if not getattr(Config, "RESTART_AFTER_PLUGIN_CHANGE", True):
+        return False
+    return _do_restart()
+
+
+def _pip_install(pypi_name: str) -> tuple[bool, str]:
+    """Run pip install. Returns (success, message). Only allowlisted packages."""
+    if not any(p["pypi_name"] == pypi_name for p in AVAILABLE_PLUGINS):
+        return False, "Package not in allowlist"
+    import subprocess
+    import sys
+    try:
+        r = subprocess.run(
+            [sys.executable, "-m", "pip", "install", pypi_name],
+            capture_output=True, text=True, timeout=120
+        )
+        if r.returncode != 0:
+            return False, r.stderr or r.stdout or "pip install failed"
+        if _schedule_restart():
+            return True, "Installed. App will exit in 2s. Start it again to activate."
+        return True, "Installed."
+    except subprocess.TimeoutExpired:
+        return False, "Install timed out"
+    except Exception as e:
+        return False, str(e)
+
+
+def _pip_uninstall(pypi_name: str) -> tuple[bool, str]:
+    """Run pip uninstall. Returns (success, message). Only allowlisted packages."""
+    if not any(p["pypi_name"] == pypi_name for p in AVAILABLE_PLUGINS):
+        return False, "Package not in allowlist"
+    import subprocess
+    import sys
+    try:
+        r = subprocess.run(
+            [sys.executable, "-m", "pip", "uninstall", "-y", pypi_name],
+            capture_output=True, text=True, timeout=60
+        )
+        if r.returncode != 0:
+            return False, r.stderr or r.stdout or "pip uninstall failed"
+        if _schedule_restart():
+            return True, "Uninstalled. App will exit in 2s. Start it again to deactivate."
+        return True, "Uninstalled."
+    except subprocess.TimeoutExpired:
+        return False, "Uninstall timed out"
+    except Exception as e:
+        return False, str(e)
+
+
+@app.route('/api/modules/install', methods=['POST'])
+def install_module():
+    """Install a plugin package. Body: {"pypi_name": "nokwatch-scan"}."""
+    data = request.get_json() or {}
+    pypi_name = (data.get("pypi_name") or "").strip()
+    if not pypi_name:
+        return jsonify({"error": "pypi_name required"}), 400
+    success, msg = _pip_install(pypi_name)
+    if success:
+        return jsonify({"message": msg})
+    return jsonify({"error": msg}), 400
+
+
+@app.route('/api/restart', methods=['POST'])
+def restart_app():
+    """Manually trigger app restart. Used when auto-restart is disabled."""
+    if _do_restart():
+        return jsonify({"message": "App will exit in 2s. Start it again to continue."})
+    return jsonify({"error": "Could not schedule restart"}), 500
+
+
+@app.route('/api/modules/uninstall', methods=['POST'])
+def uninstall_module():
+    """Uninstall a plugin package. Body: {"pypi_name": "nokwatch-scan"}."""
+    data = request.get_json() or {}
+    pypi_name = (data.get("pypi_name") or "").strip()
+    if not pypi_name:
+        return jsonify({"error": "pypi_name required"}), 400
+    success, msg = _pip_uninstall(pypi_name)
+    if success:
+        return jsonify({"message": msg})
+    return jsonify({"error": msg}), 400
+
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=Config.FLASK_DEBUG)

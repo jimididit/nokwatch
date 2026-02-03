@@ -33,6 +33,10 @@
                         <svg class="icon-ellipsis" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg>
                     </button>
                     <div class="header-more-dropdown" id="header-more-dropdown" role="menu">
+                        {% for item in plugin_menu_items %}
+                        <a href="{{ item.url }}" class="header-more-item" role="menuitem">{{ item.name }}</a>
+                        {% endfor %}
+                        <a href="/modules" class="header-more-item" role="menuitem">Modules</a>
                         <button type="button" class="header-more-item" id="more-export-btn" role="menuitem">Export</button>
                         <button type="button" class="header-more-item" id="more-import-btn" role="menuitem">Import</button>
                         <button type="button" class="header-more-item" id="more-test-email-btn" role="menuitem">Test Email</button>
@@ -50,6 +54,10 @@
             <button type="button" class="mobile-nav-close" onclick="closeMobileNav()" aria-label="Close menu">×</button>
         </div>
         <nav class="mobile-nav-body">
+            {% for item in plugin_menu_items %}
+            <a href="{{ item.url }}" class="btn btn-secondary mobile-nav-item" style="display:block;text-align:center;text-decoration:none;" onclick="closeMobileNav();">{{ item.name }}</a>
+            {% endfor %}
+            <a href="/modules" class="btn btn-secondary mobile-nav-item" style="display:block;text-align:center;text-decoration:none;" onclick="closeMobileNav();">Modules</a>
             <button type="button" class="btn btn-secondary mobile-nav-item" id="mobile-smart-setup-btn" onclick="closeMobileNav(); openWizardModal();">
                 Smart Setup
             </button>

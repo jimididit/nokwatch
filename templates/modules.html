@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+
+{% block title %}Modules - Nokwatch{% endblock %}
+
+{% block content %}
+<div id="app">
+    <header class="header">
+        <div class="header-content">
+            <div class="header-top-row">
+                <h1 class="header-title"><a href="/" class="header-title-link">Nokwatch</a></h1>
+            </div>
+            <div class="header-actions">
+                <a href="/" class="btn btn-secondary">← Monitors</a>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+        <section class="stats-section">
+            <h2 class="stats-title">Modules</h2>
+            <p class="text-muted" style="margin-bottom: var(--spacing-lg);">
+                Install optional plugins to extend Nokwatch. Restart the application after installing or uninstalling.
+            </p>
+
+            <div id="modules-loading" class="text-center mt-lg">
+                <div class="loading"></div>
+                <p class="text-muted mt-md">Loading modules...</p>
+            </div>
+
+            <div id="modules-list" class="hidden"></div>
+
+            <div id="manual-restart-banner" class="manual-restart-banner hidden">
+                <p>Restart Nokwatch to apply plugin changes.</p>
+                <button type="button" class="btn btn-danger" id="manual-restart-btn">Restart Nokwatch</button>
+            </div>
+        </section>
+    </main>
+</div>
+
+<style>
+.header-title-link { color: inherit; text-decoration: none; }
+.header-title-link:hover { color: var(--accent-primary); }
+.module-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    padding: var(--spacing-lg);
+    margin-bottom: var(--spacing-md);
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: var(--spacing-md);
+}
+.module-info { flex: 1; min-width: 200px; }
+.module-name { font-size: 1.125rem; font-weight: 600; margin-bottom: var(--spacing-xs); }
+.module-desc { color: var(--text-secondary); font-size: 0.9375rem; }
+.module-badge { font-size: 0.75rem; padding: 0.2rem 0.5rem; border-radius: 4px; background: var(--bg-tertiary); }
+.module-badge.installed { background: rgba(76, 175, 80, 0.2); color: var(--accent-primary); }
+.manual-restart-banner {
+    margin-top: var(--spacing-lg);
+    padding: var(--spacing-lg);
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    flex-wrap: wrap;
+}
+.manual-restart-banner p { margin: 0; }
+</style>
+
+<script>
+(function() {
+    const loading = document.getElementById('modules-loading');
+    const list = document.getElementById('modules-list');
+    const manualRestartBanner = document.getElementById('manual-restart-banner');
+    const manualRestartBtn = document.getElementById('manual-restart-btn');
+
+    let restartAfterPluginChange = true;
+    let pluginJustChanged = false;
+
+    fetch('/api/modules')
+        .then(r => r.json())
+        .then(data => {
+            restartAfterPluginChange = data.restart_after_plugin_change !== false;
+            loading.classList.add('hidden');
+            list.classList.remove('hidden');
+            list.innerHTML = data.plugins.map(p => `
+                <div class="module-card">
+                    <div class="module-info">
+                        <div class="module-name">${escapeHtml(p.name)} <span class="module-badge ${p.installed ? 'installed' : ''}">${p.installed ? 'Installed' : 'Not installed'}</span></div>
+                        <div class="module-desc">${escapeHtml(p.description)}</div>
+                    </div>
+                    <div>
+                        ${p.installed
+                            ? `<button type="button" class="btn btn-secondary" data-action="uninstall" data-pypi="${escapeHtml(p.pypi_name)}">Uninstall</button>`
+                            : `<button type="button" class="btn btn-primary" data-action="install" data-pypi="${escapeHtml(p.pypi_name)}">Install</button>`
+                        }
+                    </div>
+                </div>
+            `).join('');
+
+            list.querySelectorAll('[data-action]').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const action = btn.dataset.action;
+                    const pypi = btn.dataset.pypi;
+                    btn.disabled = true;
+                    fetch(`/api/modules/${action}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ pypi_name: pypi })
+                    })
+                    .then(r => r.json())
+                    .then(res => {
+                        if (res.error) alert(res.error);
+                        else {
+                            alert(res.message);
+                            if (restartAfterPluginChange) {
+                                setTimeout(() => location.reload(), 5000);
+                            } else {
+                                pluginJustChanged = true;
+                                manualRestartBanner.classList.remove('hidden');
+                            }
+                        }
+                    })
+                    .catch(e => { alert('Error: ' + e.message); btn.disabled = false; })
+                    .finally(() => { btn.disabled = false; });
+                });
+            });
+
+            manualRestartBtn.addEventListener('click', () => {
+                manualRestartBtn.disabled = true;
+                fetch('/api/restart', { method: 'POST' })
+                    .then(r => r.json())
+                    .then(res => {
+                        if (res.error) alert(res.error);
+                        else {
+                            alert(res.message + ' Page will reload in 5 seconds.');
+                            setTimeout(() => location.reload(), 5000);
+                        }
+                    })
+                    .catch(e => { alert('Error: ' + e.message); manualRestartBtn.disabled = false; });
+            });
+        })
+        .catch(e => {
+            loading.innerHTML = '<p class="text-muted">Failed to load modules.</p>';
+        });
+
+    function escapeHtml(s) {
+        const div = document.createElement('div');
+        div.textContent = s;
+        return div.innerHTML;
+    }
+})();
+</script>
+{% endblock %}

@@ -8,20 +8,20 @@ A lightweight Python-based website monitoring tool. Can run on low-resource devi
 
 ## Features
 
-- **Multiple monitors** – Track many URLs with separate names, intervals, and patterns
-- **Content matching** – String or regex; match when the page contains (or does not contain) text
-- **Notifications** – Email, Discord webhooks, and Slack webhooks; multiple channels per monitor
-- **Notification cooldown** – Throttle alerts so you don’t get spammed
-- **HTTP status & response time** – Alert on specific status codes or when the site is slow
-- **JSON/API monitoring** – Monitor JSON responses using JSONPath
-- **Auth** – Basic Auth, custom headers, and cookies for protected pages
-- **Tags** – Organize and filter monitors by tags
-- **Templates** – Start from pre-built templates (e.g. waitlist, availability, status page)
-- **Smart Setup** – Enter a URL and get suggested name, pattern, and interval (optional AI)
-- **AI content detection** – Use OpenAI to detect semantic changes (optional; requires API key)
-- **Check history** – View past checks, HTTP status, content diff, and optional screenshots
-- **Export/Import** – Backup or move your monitors as JSON
-- **Web UI** – Dark-themed, mobile-friendly interface; run checks on demand
+- **Multiple monitors** - Track many URLs with separate names, intervals, and patterns
+- **Content matching** - String or regex; match when the page contains (or does not contain) text
+- **Notifications** - Email, Discord webhooks, and Slack webhooks; multiple channels per monitor
+- **Notification cooldown** - Throttle alerts so you don’t get spammed
+- **HTTP status & response time** - Alert on specific status codes or when the site is slow
+- **JSON/API monitoring** - Monitor JSON responses using JSONPath
+- **Auth** - Basic Auth, custom headers, and cookies for protected pages
+- **Tags** - Organize and filter monitors by tags
+- **Templates** - Start from pre-built templates (e.g. waitlist, availability, status page)
+- **Smart Setup** - Enter a URL and get suggested name, pattern, and interval (optional AI)
+- **AI content detection** - Use OpenAI to detect semantic changes (optional; requires API key)
+- **Check history** - View past checks, HTTP status, content diff, and optional screenshots
+- **Export/Import** - Backup or move your monitors as JSON
+- **Web UI** - Dark-themed, mobile-friendly interface; run checks on demand
 
 ## Requirements
 
@@ -123,17 +123,17 @@ Adjust paths to match your install directory.
 
 ## API
 
-- `GET /api/jobs` – List jobs (optional `?tag=name`)
-- `POST /api/jobs` – Create job
-- `PUT /api/jobs/<id>` – Update job
-- `DELETE /api/jobs/<id>` – Delete job
-- `GET /api/jobs/<id>/history` – Check history
-- `POST /api/jobs/<id>/toggle` – Toggle active/inactive
-- `POST /api/jobs/<id>/run-check` – Run check now
-- `POST /api/test-email` – Send test email
-- `GET /api/health` – Health check
-- `GET /api/templates` – List monitor templates
-- `POST /api/wizard/analyze` – Smart Setup analysis
+- `GET /api/jobs` - List jobs (optional `?tag=name`)
+- `POST /api/jobs` - Create job
+- `PUT /api/jobs/<id>` - Update job
+- `DELETE /api/jobs/<id>` - Delete job
+- `GET /api/jobs/<id>/history` - Check history
+- `POST /api/jobs/<id>/toggle` - Toggle active/inactive
+- `POST /api/jobs/<id>/run-check` - Run check now
+- `POST /api/test-email` - Send test email
+- `GET /api/health` - Health check
+- `GET /api/templates` - List monitor templates
+- `POST /api/wizard/analyze` - Smart Setup analysis
 
 ## Security
 
@@ -142,13 +142,13 @@ Adjust paths to match your install directory.
 
 ## Troubleshooting
 
-- **Email not received** – Check `.env` SMTP settings; use an App Password for Gmail; check spam and firewall (port 587 or 465).
-- **Checks not running** – Ensure the monitor is Active and the app/scheduler started without errors (check logs).
-- **Database issues** – Ensure the app has write permission in the project directory. To reset, remove `monitor.db` and restart (DB will be recreated).
+- **Email not received** - Check `.env` SMTP settings; use an App Password for Gmail; check spam and firewall (port 587 or 465).
+- **Checks not running** - Ensure the monitor is Active and the app/scheduler started without errors (check logs).
+- **Database issues** - Ensure the app has write permission in the project directory. To reset, remove `monitor.db` and restart (DB will be recreated).
 
 ## License
 
-MIT – see [LICENSE](LICENSE).
+MIT - see [LICENSE](LICENSE).
 
 ## Credits
 

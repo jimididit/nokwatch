@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "nokwatch-scan"
+version = "0.1.0"
+description = "Listing scan plugin for Nokwatch"
+requires-python = ">=3.10"
+dependencies = [
+    "requests",
+    "beautifulsoup4",
+    "jsonpath-ng",
+]
+
+[project.entry-points."nokwatch.plugins"]
+scan = "nokwatch_scan:register"
+
+[tool.setuptools.packages.find]
+where = ["src"]

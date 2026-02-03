@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block title %}Scanner Settings - Nokwatch{% endblock %}
+
+{% block content %}
+<div id="app">
+    <header class="header">
+        <div class="header-content">
+            <div class="header-top-row">
+                <h1 class="header-title"><a href="/scan" class="header-title-link">← Scanner</a></h1>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+        <section class="stats-section">
+            <h2 class="stats-title">Scanner Settings</h2>
+            <p class="text-muted">No additional settings at this time. Configure extractors per scan job.</p>
+        </section>
+    </main>
+</div>
+<style>.header-title-link{color:inherit;text-decoration:none;}</style>
+{% endblock %}

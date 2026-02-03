@@ -6,7 +6,7 @@ from apscheduler.triggers.interval import IntervalTrigger
 
 from core.models import get_db
 from core.crypto import decrypt_credentials
-from monitoring.monitor import check_website
+from core.plugins import get_check_handler
 from services.notification_service import send_notification
 from services.diff_service import save_snapshot_and_diff
 from services.screenshot_service import capture_screenshot
@@ -26,44 +26,25 @@ def run_check(job_id: int):
     cursor = conn.cursor()
     
     try:
-        # Get job details
-        cursor.execute('''
-            SELECT id, name, url, check_interval, match_type, match_pattern,
-                   match_condition, email_recipient, is_active,
-                   notification_throttle_seconds, status_code_monitor, response_time_threshold,
-                   json_path, auth_config, proxy_url, custom_user_agent, capture_screenshot,
-                   ai_enabled, ai_prompt, ai_last_result
-            FROM monitor_jobs
-            WHERE id = ?
-        ''', (job_id,))
-
+        # Get job details (SELECT * so plugin-added columns flow through)
+        cursor.execute('SELECT * FROM monitor_jobs WHERE id = ?', (job_id,))
         job_row = cursor.fetchone()
         if not job_row:
             logger.warning(f"Job {job_id} not found")
             return
 
-        job = {
-            'id': job_row[0],
-            'name': job_row[1],
-            'url': job_row[2],
-            'check_interval': job_row[3],
-            'match_type': job_row[4],
-            'match_pattern': job_row[5],
-            'match_condition': job_row[6],
-            'email_recipient': job_row[7],
-            'is_active': job_row[8],
-            'notification_throttle_seconds': 3600 if job_row[9] is None else job_row[9],
-            'status_code_monitor': job_row[10],
-            'response_time_threshold': job_row[11],
-            'json_path': job_row[12] or "",
-            'auth_config': decrypt_credentials(job_row[13]),
-            'proxy_url': job_row[14] or "",
-            'custom_user_agent': job_row[15] or "",
-            'capture_screenshot': bool(job_row[16]) if len(job_row) > 16 else False,
-            'ai_enabled': bool(job_row[17]) if len(job_row) > 17 else False,
-            'ai_prompt': job_row[18] if len(job_row) > 18 else None,
-            'ai_last_result': job_row[19] if len(job_row) > 19 else None,
-        }
+        # Build job dict from row (supports plugin-added columns)
+        job = dict(job_row)
+        # Decrypt auth_config
+        if job.get('auth_config'):
+            job['auth_config'] = decrypt_credentials(job['auth_config'])
+        # Normalize booleans and defaults
+        job['notification_throttle_seconds'] = 3600 if job.get('notification_throttle_seconds') is None else job['notification_throttle_seconds']
+        job['json_path'] = job.get('json_path') or ""
+        job['proxy_url'] = job.get('proxy_url') or ""
+        job['custom_user_agent'] = job.get('custom_user_agent') or ""
+        job['capture_screenshot'] = bool(job.get('capture_screenshot'))
+        job['ai_enabled'] = bool(job.get('ai_enabled'))
         
         # Skip if job is not active
         if not job['is_active']:
@@ -71,9 +52,10 @@ def run_check(job_id: int):
             return
         
         logger.info(f"Checking job {job_id}: {job['name']} ({job['url']})")
-        
-        # Perform check
-        result = check_website(job)
+
+        # Perform check (dispatch to plugin handler or default check_website)
+        handler = get_check_handler(job)
+        result = handler(job)
         
         # Check HTTP status code monitoring
         should_alert = False
@@ -127,10 +109,16 @@ def run_check(job_id: int):
             content_snapshot_id = snapshot_id
             diff_data = diff_text if diff_text else None
         
-        # Optional screenshot on match
+        # Optional screenshot on match (or first matched item when plugin returns matched_items)
         screenshot_path = None
         if result.get('match_found') and job.get('capture_screenshot'):
-            screenshot_path = capture_screenshot(job['url'], job_id)
+            if result.get('matched_items'):
+                # Plugin returned item URLs; screenshot first item
+                first_item = result['matched_items'][0]
+                item_url = first_item.get('url') or job['url']
+                screenshot_path = capture_screenshot(item_url, job_id, suffix="_item0")
+            else:
+                screenshot_path = capture_screenshot(job['url'], job_id)
         
         # Log check history (include content_snapshot_id, diff_data, screenshot_path when present); timestamp in local time
         now_local = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
@@ -153,10 +141,15 @@ def run_check(job_id: int):
         
         # Commit and release DB lock before sending notifications (avoids "database is locked")
         conn.commit()
-        
+
+        # Build match_status for notification (include matched_items, screenshot_path from plugins)
+        match_status = dict(result)
+        if screenshot_path:
+            match_status['screenshot_path'] = screenshot_path
+
         # Send notification if alert condition met (after commit so notification_service can write throttle)
         if should_alert:
-            send_notification(job, result)
+            send_notification(job, match_status)
         
         if result['success']:
             logger.info(f"Check completed for job {job_id}: match={result.get('match_found')}")

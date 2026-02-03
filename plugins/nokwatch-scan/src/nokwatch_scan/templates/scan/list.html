@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+
+{% block title %}Scanner - Nokwatch{% endblock %}
+
+{% block content %}
+<div id="app">
+    <header class="header">
+        <div class="header-content">
+            <div class="header-top-row">
+                <h1 class="header-title"><a href="/" class="header-title-link">Nokwatch</a> / Scanner</h1>
+            </div>
+            <div class="header-actions">
+                <a href="/" class="btn btn-secondary">← Monitors</a>
+                <a href="/scan/new" class="btn btn-primary">+ Add Scan</a>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+        <section class="stats-section">
+            <h2 class="stats-title">Scan Jobs</h2>
+            <p class="text-muted">Monitor listing pages (eBay, job boards, etc.) for new items matching your criteria.</p>
+
+            <div id="scan-loading" class="text-center mt-lg">
+                <div class="loading"></div>
+                <p class="text-muted mt-md">Loading...</p>
+            </div>
+            <div id="scan-empty" class="empty-state hidden">
+                <p class="text-secondary">No scan jobs yet.</p>
+                <a href="/scan/new" class="btn btn-primary mt-md">Add your first scan</a>
+            </div>
+            <div id="scan-list" class="cards-grid hidden"></div>
+        </section>
+    </main>
+</div>
+<style>.header-title-link { color: inherit; text-decoration: none; }</style>
+<script>
+fetch('/api/scan/jobs').then(r=>r.json()).then(d=>{
+    document.getElementById('scan-loading').classList.add('hidden');
+    if (!d.jobs || d.jobs.length===0) document.getElementById('scan-empty').classList.remove('hidden');
+    else {
+        document.getElementById('scan-list').classList.remove('hidden');
+        document.getElementById('scan-list').innerHTML = d.jobs.map(j=>`
+            <div class="card">
+                <h3>${escapeHtml(j.name)}</h3>
+                <p class="text-muted" style="font-size:0.875rem;">${escapeHtml(j.url)}</p>
+                <div style="margin-top:0.5rem;">
+                    <button type="button" class="btn btn-secondary" style="margin-right:0.5rem;" onclick="runCheckNow(${j.id})" title="Run check now">Run Check</button>
+                    <a href="/scan/${j.id}/edit" class="btn btn-secondary">Edit</a>
+                </div>
+            </div>
+        `).join('');
+    }
+});
+function escapeHtml(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML;}
+async function runCheckNow(jobId){
+    try {
+        const r=await fetch('/api/jobs/'+jobId+'/run-check',{method:'POST'});
+        const d=await r.json();
+        alert(d.message||d.error||'Check started');
+    }catch(e){alert('Error: '+e.message);}
+}
+</script>
+{% endblock %}

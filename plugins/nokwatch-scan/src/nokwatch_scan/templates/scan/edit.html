@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Scan - Nokwatch{% endblock %}
+
+{% block content %}
+<div id="app">
+    <header class="header">
+        <div class="header-content">
+            <div class="header-top-row">
+                <h1 class="header-title"><a href="/scan" class="header-title-link">← Scanner</a></h1>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+        <section class="stats-section">
+            <h2 class="stats-title">Edit Scan Job</h2>
+            <div id="edit-loading" class="text-center mt-lg"><div class="loading"></div></div>
+            <form id="scan-form" class="form hidden">
+                <div class="form-group">
+                    <label for="name" class="form-label">Name *</label>
+                    <input type="text" id="name" class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label for="url" class="form-label">URL *</label>
+                    <input type="url" id="url" class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label for="match_pattern" class="form-label">Match pattern (regex)</label>
+                    <input type="text" id="match_pattern" class="form-input">
+                </div>
+                <div class="form-group">
+                    <label for="email_recipient" class="form-label">Email (notifications)</label>
+                    <input type="email" id="email_recipient" class="form-input">
+                </div>
+                <div class="form-group">
+                    <label for="check_interval" class="form-label">Check interval</label>
+                    <select id="check_interval" class="form-select"></select>
+                </div>
+                <details class="form-group">
+                    <summary>Extractor config (JSON)</summary>
+                    <textarea id="item_extractor_config" class="form-input" rows="8" style="font-family:monospace"></textarea>
+                </details>
+                <div class="form-group">
+                    <button type="submit" class="btn btn-primary">Save</button>
+                    <a href="/scan" class="btn btn-secondary">Cancel</a>
+                </div>
+            </form>
+        </section>
+    </main>
+</div>
+<style>.header-title-link{color:inherit;text-decoration:none;}</style>
+<script>
+const jobId = {{ job_id }};
+fetch('/api/scan/jobs/'+jobId).then(r=>r.json()).then(j=>{
+    document.getElementById('edit-loading').classList.add('hidden');
+    document.getElementById('scan-form').classList.remove('hidden');
+    document.getElementById('name').value=j.name||'';
+    document.getElementById('url').value=j.url||'';
+    document.getElementById('match_pattern').value=j.match_pattern||'';
+    document.getElementById('email_recipient').value=j.email_recipient||'';
+    document.getElementById('check_interval').innerHTML=[300,600,900,1800].map(v=>`<option value="${v}" ${j.check_interval==v?'selected':''}>${v/60} min</option>`).join('');
+    document.getElementById('item_extractor_config').value=JSON.stringify(j.item_extractor_config||{},null,2);
+});
+document.getElementById('scan-form').onsubmit=function(e){
+    e.preventDefault();
+    let cfg={};
+    try{ cfg=JSON.parse(document.getElementById('item_extractor_config').value||'{}'); }catch(_){}
+    fetch('/api/scan/jobs/'+jobId,{
+        method:'PUT',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({
+            name:document.getElementById('name').value,
+            url:document.getElementById('url').value,
+            match_pattern:document.getElementById('match_pattern').value,
+            email_recipient:document.getElementById('email_recipient').value,
+            check_interval:parseInt(document.getElementById('check_interval').value,10),
+            item_extractor_config:cfg
+        })
+    }).then(r=>r.json()).then(d=>{
+        if(d.error) alert(d.error);
+        else window.location='/scan';
+    });
+};
+</script>
+{% endblock %}

@@ -31,6 +31,8 @@ class Config:
 
     # Application Settings
     DEFAULT_CHECK_INTERVAL = int(os.getenv('DEFAULT_CHECK_INTERVAL', '300'))
+    # Restart app after plugin install/uninstall (set to 'false' when using gunicorn/systemd)
+    RESTART_AFTER_PLUGIN_CHANGE = os.getenv('RESTART_AFTER_PLUGIN_CHANGE', 'true').lower() == 'true'
 
     # Request timeout for website checks (seconds)
     REQUEST_TIMEOUT = 10

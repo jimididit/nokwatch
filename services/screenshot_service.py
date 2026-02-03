@@ -26,17 +26,18 @@ def _check_playwright():
     return _playwright_available
 
 
-def capture_screenshot(url: str, job_id: int) -> str | None:
+def capture_screenshot(url: str, job_id: int, suffix: str = "") -> str | None:
     """
     Capture a screenshot of the given URL. Saves to static/screenshots/.
     Returns relative path like 'screenshots/job_1_20250101_120000.png' or None if unavailable.
+    suffix: optional suffix (e.g. '_item0') so multiple screenshots per job don't overwrite.
     """
     if not _check_playwright():
         logger.debug("Playwright not installed; skipping screenshot")
         return None
     SCREENSHOTS_DIR.mkdir(parents=True, exist_ok=True)
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    filename = f"job_{job_id}_{timestamp}.png"
+    filename = f"job_{job_id}_{timestamp}{suffix}.png"
     filepath = SCREENSHOTS_DIR / filename
     try:
         from playwright.sync_api import sync_playwright
