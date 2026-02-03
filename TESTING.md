@@ -34,6 +34,11 @@ pytest
 
 This runs unit tests for core behavior (auth, templates, diff, notifications, credential encryption, AI with mocks, etc.). No app needs to be running.
 
+**Plugin and job-type tests:**
+
+- **`tests/test_plugin_jobs.py`** – API tests for job-type-aware behavior: `GET /api/jobs` returns `job_type`, `POST /api/jobs` with `job_type: listing_scan` (relaxed match fields), `PUT /api/jobs` with plugin columns and empty pattern for scan jobs, export/import including `job_type` and plugin columns. These use a temporary test DB (see `conftest.py`); run with the project venv and dependencies installed (`pip install -r requirements.txt`).
+- **`tests/test_nokwatch_scan.py`** – Unit tests for the nokwatch-scan plugin: `listing_extractor` (JSON/HTML extraction, JSONPath), `check_listing_page` (with mocked HTTP). Some tests are skipped if `jsonpath-ng` or `beautifulsoup4` are not installed. The plugin is loaded from `plugins/nokwatch-scan/src` when running pytest from the project root.
+
 **Optional – API/integration tests (app must be running):**
 
 ```bash
