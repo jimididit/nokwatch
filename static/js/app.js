@@ -619,9 +619,13 @@ function createJobCard(job) {
         : '<span class="badge badge-inactive">Inactive</span>';
     
     const intervalText = formatInterval(job.check_interval);
+    const isScanJob = job.job_type === 'listing_scan' || job.scan_mode === 'listing';
     const matchTypeText = job.match_type === 'regex' ? 'Regex' : 'String';
     const conditionText = job.match_condition === 'contains' ? 'contains' : 'does not contain';
     const modeText = job.json_path ? 'JSON' : 'HTML';
+    const cardSubtext = isScanJob
+        ? `Listing scan · checks every ${intervalText}`
+        : `Checks every ${intervalText} for "${escapeHtml(job.match_pattern || '')}" (${matchTypeText}, ${conditionText}) · ${modeText}`;
     
     return `
         <div class="card" data-job-id="${job.id}">
@@ -649,8 +653,7 @@ function createJobCard(job) {
                     </a>
                 </p>
                 <p class="text-secondary">
-                    Checks every ${intervalText} for "${escapeHtml(job.match_pattern)}" 
-                    (${matchTypeText}, ${conditionText}) · ${modeText}
+                    ${cardSubtext}
                 </p>
             </div>
             <div class="card-footer">
@@ -697,11 +700,17 @@ function openJobModal(jobId = null) {
     if (templateSelect) templateSelect.value = '';
     if (templateDesc) templateDesc.textContent = '';
 
+    const patternInput = document.getElementById('match-pattern');
     if (jobId) {
         modalTitle.textContent = 'Edit Monitor';
         const job = jobs.find(j => j.id === jobId);
         if (job) {
             populateForm(job);
+            const isScanJob = job.job_type === 'listing_scan' || job.scan_mode === 'listing';
+            if (patternInput) {
+                if (isScanJob) patternInput.removeAttribute('required');
+                else patternInput.setAttribute('required', 'required');
+            }
         }
     } else {
         modalTitle.textContent = 'Add Monitor';
@@ -709,6 +718,7 @@ function openJobModal(jobId = null) {
         resetFormToggles();
         if (templateSelect) templateSelect.value = '';
         if (templateDesc) templateDesc.textContent = '';
+        if (patternInput) patternInput.setAttribute('required', 'required');
     }
 
     modal.classList.add('active');
@@ -1033,7 +1043,9 @@ async function handleJobSubmit(e) {
 // Validate form data
 function validateForm(data) {
     let isValid = true;
-    
+    const job = currentJobId ? jobs.find(j => j.id === currentJobId) : null;
+    const isScanJob = job && (job.job_type === 'listing_scan' || job.scan_mode === 'listing');
+
     // Validate URL
     try {
         new URL(data.url);
@@ -1041,16 +1053,19 @@ function validateForm(data) {
         showFieldError('url', 'Please enter a valid URL');
         isValid = false;
     }
-    
+
     // Validate email
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(data.email_recipient)) {
         showFieldError('email', 'Please enter a valid email address');
         isValid = false;
     }
-    
-    // Validate regex pattern if match_type is regex
-    if (data.match_type === 'regex') {
+
+    // Pattern: required for standard jobs; optional for scan jobs. Regex validation only when pattern non-empty
+    if (!isScanJob && (data.match_pattern == null || String(data.match_pattern).trim() === '')) {
+        showFieldError('pattern', 'Pattern to match is required');
+        isValid = false;
+    } else if (data.match_pattern && String(data.match_pattern).trim() !== '' && data.match_type === 'regex') {
         try {
             new RegExp(data.match_pattern);
         } catch {
@@ -1058,7 +1073,7 @@ function validateForm(data) {
             isValid = false;
         }
     }
-    
+
     return isValid;
 }
 

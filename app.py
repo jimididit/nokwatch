@@ -106,6 +106,44 @@ def _set_job_tags(conn, job_id, tag_names):
             cursor.execute('INSERT OR IGNORE INTO job_tags (job_id, tag_id) VALUES (?, ?)', (job_id, tag_id))
 
 
+def _job_data_from_row(row, conn):
+    """Build job_data dict from a monitor_jobs row (SELECT *). Normalize auth, JSON, channels, tags."""
+    job_id = row['id'] if hasattr(row, 'keys') else row[0]
+    if hasattr(row, 'keys'):
+        job_data = dict(row)
+    else:
+        return None  # expect Row with .keys()
+    # Decrypt auth_config
+    if job_data.get('auth_config'):
+        job_data['auth_config'] = _safe_json_load(decrypt_credentials(job_data['auth_config'])) or None
+    else:
+        job_data['auth_config'] = None
+    # Normalize defaults
+    job_data['notification_throttle_seconds'] = 3600 if job_data.get('notification_throttle_seconds') is None else job_data['notification_throttle_seconds']
+    job_data['json_path'] = job_data.get('json_path') or ""
+    job_data['proxy_url'] = job_data.get('proxy_url') or ""
+    job_data['custom_user_agent'] = job_data.get('custom_user_agent') or ""
+    job_data['is_active'] = bool(job_data.get('is_active'))
+    job_data['capture_screenshot'] = bool(job_data.get('capture_screenshot'))
+    job_data['ai_enabled'] = bool(job_data.get('ai_enabled'))
+    # Parse plugin JSON columns
+    raw = job_data.get('item_extractor_config')
+    if isinstance(raw, str) and raw:
+        try:
+            job_data['item_extractor_config'] = json.loads(raw)
+        except json.JSONDecodeError:
+            job_data['item_extractor_config'] = {}
+    raw = job_data.get('seen_item_ids')
+    if isinstance(raw, str) and raw:
+        try:
+            job_data['seen_item_ids'] = json.loads(raw)
+        except json.JSONDecodeError:
+            job_data['seen_item_ids'] = []
+    job_data['notification_channels'] = get_job_notification_channels(job_id)
+    job_data['tags'] = _get_job_tag_names(conn, job_id)
+    return job_data
+
+
 @app.route('/api/jobs', methods=['GET'])
 def get_jobs():
     """Get all monitoring jobs. Optional query: tag=name to filter by tag."""
@@ -116,60 +154,19 @@ def get_jobs():
     try:
         if tag_filter:
             cursor.execute('''
-                SELECT DISTINCT m.id, m.name, m.url, m.check_interval, m.match_type, m.match_pattern,
-                       m.match_condition, m.email_recipient, m.is_active,
-                       m.created_at, m.last_checked, m.last_match,
-                       m.notification_throttle_seconds, m.status_code_monitor, m.response_time_threshold,
-                       m.json_path, m.auth_config, m.proxy_url, m.custom_user_agent, m.capture_screenshot,
-                       m.ai_enabled, m.ai_prompt, m.ai_last_result
-                FROM monitor_jobs m
+                SELECT m.* FROM monitor_jobs m
                 INNER JOIN job_tags jt ON jt.job_id = m.id
                 INNER JOIN tags t ON t.id = jt.tag_id AND t.name = ?
                 ORDER BY m.created_at DESC
             ''', (tag_filter,))
         else:
-            cursor.execute('''
-                SELECT id, name, url, check_interval, match_type, match_pattern,
-                       match_condition, email_recipient, is_active,
-                       created_at, last_checked, last_match,
-                       notification_throttle_seconds, status_code_monitor, response_time_threshold,
-                       json_path, auth_config, proxy_url, custom_user_agent, capture_screenshot,
-                       ai_enabled, ai_prompt, ai_last_result
-                FROM monitor_jobs
-                ORDER BY created_at DESC
-            ''')
+            cursor.execute('SELECT * FROM monitor_jobs ORDER BY created_at DESC')
         
         jobs = []
         for row in cursor.fetchall():
-            job_id = row[0]
-            job_data = {
-                'id': job_id,
-                'name': row[1],
-                'url': row[2],
-                'check_interval': row[3],
-                'match_type': row[4],
-                'match_pattern': row[5],
-                'match_condition': row[6],
-                'email_recipient': row[7],
-                'is_active': bool(row[8]),
-                'created_at': row[9],
-                'last_checked': row[10],
-                'last_match': row[11],
-                'notification_throttle_seconds': 3600 if row[12] is None else row[12],
-                'status_code_monitor': row[13],
-                'response_time_threshold': row[14],
-                'json_path': row[15] or "",
-                'auth_config': _safe_json_load(decrypt_credentials(row[16])) if row[16] else None,
-                'proxy_url': row[17] or "",
-                'custom_user_agent': row[18] or "",
-                'capture_screenshot': bool(row[19]) if len(row) > 19 else False,
-                'ai_enabled': bool(row[20]) if len(row) > 20 else False,
-                'ai_prompt': row[21] if len(row) > 21 else None,
-                'ai_last_result': row[22] if len(row) > 22 else None,
-            }
-            job_data['notification_channels'] = get_job_notification_channels(job_id)
-            job_data['tags'] = _get_job_tag_names(conn, job_id)
-            jobs.append(job_data)
+            job_data = _job_data_from_row(row, conn)
+            if job_data:
+                jobs.append(job_data)
         
         return jsonify({'jobs': jobs})
     except Exception as e:
@@ -180,37 +177,36 @@ def get_jobs():
 
 @app.route('/api/jobs', methods=['POST'])
 def create_job():
-    """Create a new monitoring job."""
+    """Create a new monitoring job. Accepts optional job_type; listing_scan relaxes match_* requirements."""
     data = request.get_json()
-    
-    # Validate required fields
-    required_fields = ['name', 'url', 'check_interval', 'match_type', 
-                      'match_pattern', 'match_condition', 'email_recipient']
+    job_type = data.get('job_type') or 'standard'
+    is_scan_job = (job_type == 'listing_scan')
+
+    # Required fields: all jobs need name, url, check_interval, email_recipient
+    required_fields = ['name', 'url', 'check_interval', 'email_recipient']
+    if not is_scan_job:
+        required_fields.extend(['match_type', 'match_pattern', 'match_condition'])
     for field in required_fields:
         if field not in data:
             return jsonify({'error': f'Missing required field: {field}'}), 400
-    
-    # Validate match_type
-    if data['match_type'] not in ['string', 'regex']:
-        return jsonify({'error': 'match_type must be "string" or "regex"'}), 400
-    
-    # Validate match_condition
-    if data['match_condition'] not in ['contains', 'not_contains']:
-        return jsonify({'error': 'match_condition must be "contains" or "not_contains"'}), 400
-    
-    # Validate check_interval
+
+    if not is_scan_job:
+        if data['match_type'] not in ['string', 'regex']:
+            return jsonify({'error': 'match_type must be "string" or "regex"'}), 400
+        if data['match_condition'] not in ['contains', 'not_contains']:
+            return jsonify({'error': 'match_condition must be "contains" or "not_contains"'}), 400
+
     try:
         check_interval = int(data['check_interval'])
         if check_interval < 30:
             return jsonify({'error': 'check_interval must be at least 30 seconds'}), 400
     except (ValueError, TypeError):
         return jsonify({'error': 'check_interval must be a valid integer'}), 400
-    
+
     conn = get_db()
     cursor = conn.cursor()
-    
+
     try:
-        # Get optional fields with defaults
         notification_throttle = data.get('notification_throttle_seconds', 3600)
         status_code_monitor = data.get('status_code_monitor')
         response_time_threshold = data.get('response_time_threshold')
@@ -223,32 +219,58 @@ def create_job():
         ai_enabled = 1 if data.get('ai_enabled') else 0
         ai_prompt = (data.get('ai_prompt') or "").strip() or None
 
-        cursor.execute('''
-            INSERT INTO monitor_jobs 
-            (name, url, check_interval, match_type, match_pattern,
-             match_condition, email_recipient, is_active,
-             notification_throttle_seconds, status_code_monitor, response_time_threshold, json_path, auth_config, proxy_url, custom_user_agent, capture_screenshot, ai_enabled, ai_prompt)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ''', (
-            data['name'],
-            data['url'],
-            check_interval,
-            data['match_type'],
-            data['match_pattern'],
-            data['match_condition'],
-            data['email_recipient'],
-            1 if data.get('is_active', True) else 0,
-            notification_throttle,
-            status_code_monitor,
-            response_time_threshold,
-            json_path,
-            auth_config_str,
-            proxy_url,
-            custom_user_agent,
-            capture_screenshot,
-            ai_enabled,
-            ai_prompt,
-        ))
+        if is_scan_job:
+            match_type = data.get('match_type') or 'string'
+            match_pattern = data.get('match_pattern') or ''
+            match_condition = data.get('match_condition') or 'contains'
+            item_extractor_config = data.get('item_extractor_config') or {}
+            price_min = data.get('price_min')
+            price_max = data.get('price_max')
+            if price_min is not None and price_min != '':
+                try:
+                    price_min = float(price_min)
+                except (ValueError, TypeError):
+                    price_min = None
+            else:
+                price_min = None
+            if price_max is not None and price_max != '':
+                try:
+                    price_max = float(price_max)
+                except (ValueError, TypeError):
+                    price_max = None
+            else:
+                price_max = None
+            seen_item_ids_str = json.dumps(data.get('seen_item_ids') or [])
+            cursor.execute('''
+                INSERT INTO monitor_jobs
+                (name, url, check_interval, match_type, match_pattern,
+                 match_condition, email_recipient, is_active,
+                 notification_throttle_seconds, status_code_monitor, response_time_threshold, json_path, auth_config, proxy_url, custom_user_agent, capture_screenshot, ai_enabled, ai_prompt,
+                 job_type, scan_mode, item_extractor_config, price_min, price_max, seen_item_ids)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+                        ?, ?, ?, ?, ?, ?)
+            ''', (
+                data['name'], data['url'], check_interval, match_type, match_pattern, match_condition,
+                data['email_recipient'], 1 if data.get('is_active', True) else 0,
+                notification_throttle, status_code_monitor, response_time_threshold, json_path,
+                auth_config_str, proxy_url, custom_user_agent, capture_screenshot, ai_enabled, ai_prompt,
+                'listing_scan', 'listing', json.dumps(item_extractor_config) if isinstance(item_extractor_config, (dict, list)) else item_extractor_config,
+                price_min, price_max, seen_item_ids_str,
+            ))
+        else:
+            cursor.execute('''
+                INSERT INTO monitor_jobs
+                (name, url, check_interval, match_type, match_pattern,
+                 match_condition, email_recipient, is_active,
+                 notification_throttle_seconds, status_code_monitor, response_time_threshold, json_path, auth_config, proxy_url, custom_user_agent, capture_screenshot, ai_enabled, ai_prompt)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (
+                data['name'], data['url'], check_interval,
+                data['match_type'], data['match_pattern'], data['match_condition'],
+                data['email_recipient'], 1 if data.get('is_active', True) else 0,
+                notification_throttle, status_code_monitor, response_time_threshold, json_path,
+                auth_config_str, proxy_url, custom_user_agent, capture_screenshot, ai_enabled, ai_prompt,
+            ))
         
         job_id = cursor.lastrowid
         
@@ -290,12 +312,17 @@ def update_job(job_id):
     cursor = conn.cursor()
     
     try:
-        # Get current job
-        cursor.execute('SELECT id, check_interval, is_active FROM monitor_jobs WHERE id = ?', (job_id,))
+        # Get current job (full row for job_type and plugin columns)
+        cursor.execute('SELECT * FROM monitor_jobs WHERE id = ?', (job_id,))
         job = cursor.fetchone()
         
         if not job:
             return jsonify({'error': 'Job not found'}), 404
+
+        job_keys = job.keys() if hasattr(job, 'keys') else []
+        job_type_val = job['job_type'] if 'job_type' in job_keys else None
+        scan_mode_val = job['scan_mode'] if 'scan_mode' in job_keys else None
+        is_scan_job = (job_type_val == 'listing_scan' or scan_mode_val == 'listing')
         
         # Build update query dynamically
         update_fields = []
@@ -400,6 +427,25 @@ def update_job(job_id):
         if 'capture_screenshot' in data:
             update_fields.append('capture_screenshot = ?')
             values.append(1 if data.get('capture_screenshot') else 0)
+
+        # Plugin columns: only set when present and job is scan type; do not clear when absent
+        if is_scan_job:
+            if 'item_extractor_config' in data and 'item_extractor_config' in job_keys:
+                val = data['item_extractor_config']
+                update_fields.append('item_extractor_config = ?')
+                values.append(json.dumps(val) if isinstance(val, (dict, list)) else (val or None))
+            if 'price_min' in data and 'price_min' in job_keys:
+                v = data['price_min']
+                update_fields.append('price_min = ?')
+                values.append(float(v) if v is not None and v != '' else None)
+            if 'price_max' in data and 'price_max' in job_keys:
+                v = data['price_max']
+                update_fields.append('price_max = ?')
+                values.append(float(v) if v is not None and v != '' else None)
+            if 'seen_item_ids' in data and 'seen_item_ids' in job_keys:
+                val = data['seen_item_ids']
+                update_fields.append('seen_item_ids = ?')
+                values.append(json.dumps(val) if isinstance(val, (list, dict)) else (val or None))
         
         if 'tags' in data:
             _set_job_tags(conn, job_id, data['tags'])
@@ -590,45 +636,16 @@ def wizard_analyze():
 
 @app.route('/api/export', methods=['GET'])
 def export_config():
-    """Export all jobs as JSON (for backup/import elsewhere)."""
+    """Export all jobs as JSON (for backup/import elsewhere). Includes job_type and plugin columns."""
     conn = get_db()
     cursor = conn.cursor()
     try:
-        cursor.execute('''
-            SELECT id, name, url, check_interval, match_type, match_pattern,
-                   match_condition, email_recipient, is_active,
-                   notification_throttle_seconds, status_code_monitor, response_time_threshold,
-                   json_path, auth_config, proxy_url, custom_user_agent, capture_screenshot,
-                   ai_enabled, ai_prompt
-            FROM monitor_jobs
-            ORDER BY id
-        ''')
+        cursor.execute('SELECT * FROM monitor_jobs ORDER BY id')
         jobs_export = []
         for row in cursor.fetchall():
-            job_id = row[0]
-            job = {
-                'name': row[1],
-                'url': row[2],
-                'check_interval': row[3],
-                'match_type': row[4],
-                'match_pattern': row[5],
-                'match_condition': row[6],
-                'email_recipient': row[7],
-                'is_active': bool(row[8]),
-                'notification_throttle_seconds': 3600 if row[9] is None else row[9],
-                'status_code_monitor': row[10],
-                'response_time_threshold': row[11],
-                'json_path': row[12] or "",
-                'auth_config': _safe_json_load(decrypt_credentials(row[13]) or "") if row[13] else None,
-                'proxy_url': row[14] or "",
-                'custom_user_agent': row[15] or "",
-                'capture_screenshot': bool(row[16]) if len(row) > 16 else False,
-                'ai_enabled': bool(row[17]) if len(row) > 17 else False,
-                'ai_prompt': row[18] if len(row) > 18 else None,
-                'tags': _get_job_tag_names(conn, job_id),
-                'notification_channels': get_job_notification_channels(job_id),
-            }
-            jobs_export.append(job)
+            job_data = _job_data_from_row(row, conn)
+            if job_data:
+                jobs_export.append(job_data)
         payload = {
             'version': 1,
             'exported_at': datetime.now().isoformat(),
@@ -644,7 +661,7 @@ def export_config():
 
 @app.route('/api/import', methods=['POST'])
 def import_config():
-    """Import jobs from JSON. Body: { jobs: [...] }. Each job same shape as create_job."""
+    """Import jobs from JSON. Body: { jobs: [...] }. Validates per job_type; listing_scan allows empty match_pattern."""
     data = request.get_json()
     if not data or 'jobs' not in data:
         return jsonify({'error': 'Missing "jobs" array in body'}), 400
@@ -657,18 +674,23 @@ def import_config():
         if not isinstance(job_data, dict):
             errors.append({'index': i, 'error': 'Job must be an object'})
             continue
-        # Validate required fields
-        for field in ['name', 'url', 'check_interval', 'match_type', 'match_pattern', 'match_condition', 'email_recipient']:
+        job_type = job_data.get('job_type') or 'standard'
+        is_scan_job = (job_type == 'listing_scan')
+        required = ['name', 'url', 'check_interval', 'email_recipient']
+        if not is_scan_job:
+            required.extend(['match_type', 'match_pattern', 'match_condition'])
+        for field in required:
             if field not in job_data:
                 errors.append({'index': i, 'name': job_data.get('name'), 'error': f'Missing {field}'})
                 break
         else:
-            if job_data.get('match_type') not in ('string', 'regex'):
-                errors.append({'index': i, 'name': job_data.get('name'), 'error': 'match_type must be string or regex'})
-                continue
-            if job_data.get('match_condition') not in ('contains', 'not_contains'):
-                errors.append({'index': i, 'name': job_data.get('name'), 'error': 'match_condition must be contains or not_contains'})
-                continue
+            if not is_scan_job:
+                if job_data.get('match_type') not in ('string', 'regex'):
+                    errors.append({'index': i, 'name': job_data.get('name'), 'error': 'match_type must be string or regex'})
+                    continue
+                if job_data.get('match_condition') not in ('contains', 'not_contains'):
+                    errors.append({'index': i, 'name': job_data.get('name'), 'error': 'match_condition must be contains or not_contains'})
+                    continue
             try:
                 check_interval = int(job_data.get('check_interval', 300))
                 if check_interval < 30:
@@ -691,32 +713,59 @@ def import_config():
                 capture_screenshot = 1 if job_data.get('capture_screenshot') else 0
                 ai_enabled = 1 if job_data.get('ai_enabled') else 0
                 ai_prompt = (job_data.get('ai_prompt') or "").strip() or None
-                cursor.execute('''
-                    INSERT INTO monitor_jobs
-                    (name, url, check_interval, match_type, match_pattern,
-                     match_condition, email_recipient, is_active,
-                     notification_throttle_seconds, status_code_monitor, response_time_threshold, json_path, auth_config, proxy_url, custom_user_agent, capture_screenshot, ai_enabled, ai_prompt)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                ''', (
-                    job_data['name'],
-                    job_data['url'],
-                    check_interval,
-                    job_data['match_type'],
-                    job_data['match_pattern'],
-                    job_data['match_condition'],
-                    job_data['email_recipient'],
-                    1 if job_data.get('is_active', True) else 0,
-                    notification_throttle,
-                    status_code_monitor,
-                    response_time_threshold,
-                    json_path,
-                    auth_config_str,
-                    proxy_url,
-                    custom_user_agent,
-                    capture_screenshot,
-                    ai_enabled,
-                    ai_prompt,
-                ))
+                if is_scan_job:
+                    match_type = job_data.get('match_type') or 'string'
+                    match_pattern = job_data.get('match_pattern') or ''
+                    match_condition = job_data.get('match_condition') or 'contains'
+                    item_extractor_config = job_data.get('item_extractor_config') or {}
+                    price_min, price_max = job_data.get('price_min'), job_data.get('price_max')
+                    if price_min is not None and price_min != '':
+                        try:
+                            price_min = float(price_min)
+                        except (ValueError, TypeError):
+                            price_min = None
+                    else:
+                        price_min = None
+                    if price_max is not None and price_max != '':
+                        try:
+                            price_max = float(price_max)
+                        except (ValueError, TypeError):
+                            price_max = None
+                    else:
+                        price_max = None
+                    seen_item_ids = job_data.get('seen_item_ids') or []
+                    seen_item_ids_str = json.dumps(seen_item_ids) if isinstance(seen_item_ids, (list, dict)) else (seen_item_ids or '[]')
+                    cursor.execute('''
+                        INSERT INTO monitor_jobs
+                        (name, url, check_interval, match_type, match_pattern,
+                         match_condition, email_recipient, is_active,
+                         notification_throttle_seconds, status_code_monitor, response_time_threshold, json_path, auth_config, proxy_url, custom_user_agent, capture_screenshot, ai_enabled, ai_prompt,
+                         job_type, scan_mode, item_extractor_config, price_min, price_max, seen_item_ids)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+                                ?, ?, ?, ?, ?, ?)
+                    ''', (
+                        job_data['name'], job_data['url'], check_interval, match_type, match_pattern, match_condition,
+                        job_data['email_recipient'], 1 if job_data.get('is_active', True) else 0,
+                        notification_throttle, status_code_monitor, response_time_threshold, json_path,
+                        auth_config_str, proxy_url, custom_user_agent, capture_screenshot, ai_enabled, ai_prompt,
+                        'listing_scan', 'listing',
+                        json.dumps(item_extractor_config) if isinstance(item_extractor_config, (dict, list)) else item_extractor_config,
+                        price_min, price_max, seen_item_ids_str,
+                    ))
+                else:
+                    cursor.execute('''
+                        INSERT INTO monitor_jobs
+                        (name, url, check_interval, match_type, match_pattern,
+                         match_condition, email_recipient, is_active,
+                         notification_throttle_seconds, status_code_monitor, response_time_threshold, json_path, auth_config, proxy_url, custom_user_agent, capture_screenshot, ai_enabled, ai_prompt)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ''', (
+                        job_data['name'], job_data['url'], check_interval,
+                        job_data['match_type'], job_data['match_pattern'], job_data['match_condition'],
+                        job_data['email_recipient'], 1 if job_data.get('is_active', True) else 0,
+                        notification_throttle, status_code_monitor, response_time_threshold, json_path,
+                        auth_config_str, proxy_url, custom_user_agent, capture_screenshot, ai_enabled, ai_prompt,
+                    ))
                 job_id = cursor.lastrowid
                 if job_data.get('tags'):
                     _set_job_tags(conn, job_id, job_data['tags'])
