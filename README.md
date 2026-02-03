@@ -6,6 +6,26 @@
 
 A lightweight Python-based website monitoring tool. Can run on low-resource devices like a Raspberry Pi (see [Limited-resource devices](#limited-resource-devices)). Monitor multiple websites for content changes and get notifications by email, Discord, or Slack when your criteria are met.
 
+---
+
+**Contents**
+
+- [Features](#features)
+- [Requirements](#requirements)
+- [Installation](#installation)
+- [Usage](#usage)
+- [Plugins](#plugins)
+- [Limited-resource devices](#limited-resource-devices)
+- [Production (e.g. Raspberry Pi)](#production-eg-raspberry-pi)
+- [Running as a System Service (Raspberry Pi)](#running-as-a-system-service-raspberry-pi)
+- [API](#api)
+- [Security](#security)
+- [Troubleshooting](#troubleshooting)
+- [License](#license)
+- [Credits](#credits)
+
+---
+
 ## Features
 
 - **Multiple monitors** - Track many URLs with separate names, intervals, and patterns
@@ -22,6 +42,7 @@ A lightweight Python-based website monitoring tool. Can run on low-resource devi
 - **Check history** - View past checks, HTTP status, content diff, and optional screenshots
 - **Export/Import** - Backup or move your monitors as JSON
 - **Web UI** - Dark-themed, mobile-friendly interface; run checks on demand
+- **Plugins** - Extend Nokwatch with optional plugins (Scanner for listing pages -eBay, Amazon, etc.; more in development)
 
 ## Requirements
 
@@ -79,6 +100,30 @@ A lightweight Python-based website monitoring tool. Can run on low-resource devi
 
 See [TESTING.md](TESTING.md) for step-by-step checks and troubleshooting.
 
+## Plugins
+
+Nokwatch supports optional plugins that add new job types and UI. Plugins share the same database and dashboard: you can manage all jobs (standard monitors and plugin jobs) from the main UI, and use the same notifications, tags, and cooldowns.
+
+### Installing plugins
+
+- **From the UI** – Open **Modules** in the menu to see available plugins. Install or uninstall from there (requires network; plugins are installed via pip).
+- **From the command line** – From the project root with your venv active:  
+  `pip install nokwatch-scan`  
+  (or install from source: `pip install -e plugins/nokwatch-scan`). Restart the app so it picks up the plugin.
+
+**Source code:** The **nokwatch-scan** plugin source is included in this repo under `plugins/nokwatch-scan`. Future plugins will live in a dedicated **nokwatch-plugins** repository (separate from the main Nokwatch repo).
+
+### nokwatch-scan (Scanner)
+
+The **Scanner** plugin monitors listing pages (e.g. eBay, job boards, classifieds) for new or changed items.
+
+- **Listing scan jobs** – Configure a URL and an extractor (JSONPath for JSON APIs, or CSS selectors for HTML). Nokwatch fetches the page on a schedule, extracts items (title, URL, price), and notifies you when new items appear or match your filters.
+- **Filters** – Optional text pattern and price range (min/max) to narrow results.
+- **Scanner UI** – Use **Scanner** in the menu to add, edit, and manage scan jobs; run a check immediately to test.
+- **Dashboard** – Scan jobs appear on the main dashboard. You can edit shared options (notifications, tags, cooldown, auth) from the main **Edit Monitor** dialog; for extractor config, use the Scanner’s edit page.
+
+*More plugins are in development* (e.g. additional job types and integrations).
+
 ## Limited-resource devices
 
 If you run Nokwatch on a device with limited disk or memory, use the minimal requirements for a smaller install (no AI features, no screenshots, no test deps). Core monitoring, notifications, and the Web UI still work:
@@ -123,17 +168,48 @@ Adjust paths to match your install directory.
 
 ## API
 
+**Jobs**
+
 - `GET /api/jobs` - List jobs (optional `?tag=name`)
 - `POST /api/jobs` - Create job
 - `PUT /api/jobs/<id>` - Update job
 - `DELETE /api/jobs/<id>` - Delete job
 - `GET /api/jobs/<id>/history` - Check history
+- `GET /api/jobs/<id>/statistics` - Job statistics
 - `POST /api/jobs/<id>/toggle` - Toggle active/inactive
 - `POST /api/jobs/<id>/run-check` - Run check now
-- `POST /api/test-email` - Send test email
-- `GET /api/health` - Health check
+- `GET /api/jobs/<id>/notification-channels` - List notification channels
+- `POST /api/jobs/<id>/notification-channels` - Add/replace notification channels
+- `DELETE /api/jobs/<id>/notification-channels/<channel_id>` - Remove channel
+
+**Tags**
+
+- `GET /api/tags` - List tags
+- `POST /api/tags` - Create tag
+
+**Templates & setup**
+
 - `GET /api/templates` - List monitor templates
 - `POST /api/wizard/analyze` - Smart Setup analysis
+
+**Export / import**
+
+- `GET /api/export` - Export all jobs (JSON)
+- `POST /api/import` - Import jobs
+
+**Other**
+
+- `GET /api/health` - Health check
+- `GET /api/statistics` - Global statistics (optional `?hours=24`)
+- `POST /api/test-email` - Send test email
+- `GET /api/modules` - List available/installed plugins
+- `POST /api/modules/install` - Install plugin
+- `POST /api/modules/uninstall` - Uninstall plugin
+- `POST /api/restart` - Restart app (if enabled)
+
+**Plugin APIs** (when the plugin is installed)
+
+- Scanner: `GET /api/scan/jobs`, `POST /api/scan/jobs`, `GET /api/scan/jobs/<id>`, `PUT /api/scan/jobs/<id>`, `DELETE /api/scan/jobs/<id>`
 
 ## Security
 
