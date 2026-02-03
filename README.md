@@ -2,7 +2,7 @@
 
 You’re on the **docs** branch. This branch holds only the **documentation website** for [Nokwatch](https://github.com/jimididit/nokwatch) — the main app (Python, monitoring, etc.) is on the **main** branch.
 
-The docs site is built with [Astro](https://astro.build) and [Tailwind CSS](https://tailwindcss.com). The published site is available at the project’s GitHub Pages URL (e.g. `https://<username>.github.io/<repo>/`).
+The docs site is built with [Astro](https://astro.build) and [Tailwind CSS](https://tailwindcss.com). The published site is available at the project’s GitHub Pages URL (e.g. `https://jimididit.github.io/nokwatch/`).
 
 ## Running the docs site locally
 
