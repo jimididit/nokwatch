@@ -4,36 +4,63 @@ import DocsLayout from '../layouts/DocsLayout.astro';
 
 <DocsLayout
   title="API Reference"
-  description="Nokwatch REST API: jobs (CRUD, toggle, run-check), notification channels, test email, health, templates, wizard/analyze, export and import. All endpoints return JSON."
-  keywords="Nokwatch API, REST API, /api/jobs, run-check, export import, wizard analyze"
+  description="Nokwatch REST API: jobs (CRUD, toggle, run-check, statistics), notification channels, tags, templates, wizard/analyze, export/import, modules, health. Plugin APIs (e.g. Scanner) when installed."
+  keywords="Nokwatch API, REST API, /api/jobs, run-check, export import, wizard analyze, modules, tags, statistics"
 >
   <h1>API Reference</h1>
-  <p>Nokwatch exposes a REST API for jobs, history, and utilities. All endpoints return JSON.</p>
+  <p>Nokwatch exposes a REST API for jobs, history, notifications, and utilities. All endpoints return JSON.</p>
 
   <h2>Jobs</h2>
   <ul>
     <li><code>GET /api/jobs</code> — List all jobs (optional <code>?tag=name</code>).</li>
-    <li><code>POST /api/jobs</code> — Create a job (JSON body with name, url, check_interval, match_type, match_pattern, match_condition, email_recipient, etc.).</li>
+    <li><code>POST /api/jobs</code> — Create a job (JSON body with name, url, check_interval, match_type, match_pattern, match_condition, email_recipient, etc.; optional <code>job_type</code> for plugin jobs).</li>
     <li><code>PUT /api/jobs/&lt;id&gt;</code> — Update a job.</li>
     <li><code>DELETE /api/jobs/&lt;id&gt;</code> — Delete a job.</li>
     <li><code>GET /api/jobs/&lt;id&gt;/history</code> — Get check history for a job.</li>
+    <li><code>GET /api/jobs/&lt;id&gt;/statistics</code> — Get job statistics.</li>
     <li><code>POST /api/jobs/&lt;id&gt;/toggle</code> — Toggle active/inactive.</li>
     <li><code>POST /api/jobs/&lt;id&gt;/run-check</code> — Run a check now.</li>
+    <li><code>GET /api/jobs/&lt;id&gt;/notification-channels</code> — List notification channels for a job.</li>
+    <li><code>POST /api/jobs/&lt;id&gt;/notification-channels</code> — Add or replace notification channels (body: array of <code>channel_type</code>, <code>config</code>).</li>
+    <li><code>DELETE /api/jobs/&lt;id&gt;/notification-channels/&lt;channel_id&gt;</code> — Remove a channel.</li>
   </ul>
 
-  <h2>Notification channels</h2>
+  <h2>Tags</h2>
   <ul>
-    <li><code>GET /api/jobs/&lt;id&gt;/notification-channels</code> — List channels for a job.</li>
-    <li><code>POST /api/jobs/&lt;id&gt;/notification-channels</code> — Add a channel (body: <code>channel_type</code>, <code>config</code>).</li>
+    <li><code>GET /api/tags</code> — List tags.</li>
+    <li><code>POST /api/tags</code> — Create a tag.</li>
+  </ul>
+
+  <h2>Templates and setup</h2>
+  <ul>
+    <li><code>GET /api/templates</code> — List monitor templates.</li>
+    <li><code>POST /api/wizard/analyze</code> — Smart Setup analysis (body: <code>url</code>, optional <code>prompt</code>).</li>
+  </ul>
+
+  <h2>Export and import</h2>
+  <ul>
+    <li><code>GET /api/export</code> — Export all jobs as JSON (includes job_type and plugin columns).</li>
+    <li><code>POST /api/import</code> — Import jobs from JSON (body: <code>{'{"jobs": [...]}'}</code>; validates per job_type).</li>
   </ul>
 
   <h2>Other</h2>
   <ul>
-    <li><code>POST /api/test-email</code> — Send a test email (optional body: <code>{'{"email": "addr"}'}</code>).</li>
     <li><code>GET /api/health</code> — Health check.</li>
-    <li><code>GET /api/templates</code> — List monitor templates.</li>
-    <li><code>POST /api/wizard/analyze</code> — Smart Setup analysis (body: <code>url</code>, optional <code>prompt</code>).</li>
-    <li><code>GET /api/export</code> — Export all jobs as JSON.</li>
-    <li><code>POST /api/import</code> — Import jobs from JSON (body: <code>{'{"jobs": [...]}'}</code>).</li>
+    <li><code>GET /api/statistics</code> — Global statistics (optional <code>?hours=24</code>).</li>
+    <li><code>POST /api/test-email</code> — Send a test email (optional body: <code>{'{"email": "addr"}'}</code>).</li>
+    <li><code>GET /api/modules</code> — List available and installed plugins.</li>
+    <li><code>POST /api/modules/install</code> — Install a plugin.</li>
+    <li><code>POST /api/modules/uninstall</code> — Uninstall a plugin.</li>
+    <li><code>POST /api/restart</code> — Restart the app (if enabled).</li>
+  </ul>
+
+  <h2>Plugin APIs</h2>
+  <p>When a plugin is installed, its API is available. For the Scanner plugin (nokwatch-scan):</p>
+  <ul>
+    <li><code>GET /api/scan/jobs</code> — List scan jobs.</li>
+    <li><code>POST /api/scan/jobs</code> — Create a scan job.</li>
+    <li><code>GET /api/scan/jobs/&lt;id&gt;</code> — Get a scan job.</li>
+    <li><code>PUT /api/scan/jobs/&lt;id&gt;</code> — Update a scan job.</li>
+    <li><code>DELETE /api/scan/jobs/&lt;id&gt;</code> — Delete a scan job.</li>
   </ul>
 </DocsLayout>

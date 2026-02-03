@@ -23,6 +23,7 @@ import DocsLayout from '../layouts/DocsLayout.astro';
     <li><code>ENCRYPTION_KEY</code> — Fernet key to encrypt auth credentials and notification config in the database. Generate with: <code>python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"</code></li>
     <li><code>DEFAULT_CHECK_INTERVAL</code> — Default interval in seconds (e.g. 300).</li>
     <li><code>USER_AGENT</code> / <code>USER_AGENT_POOL</code> — User-Agent for HTTP requests.</li>
+    <li><code>RESTART_AFTER_PLUGIN_CHANGE</code> — If <code>true</code> (default), the app exits after plugin install/uninstall so you can restart it (e.g. with systemd). Set to <code>false</code> when using gunicorn or a process manager that restarts automatically.</li>
   </ul>
 
   <h2>Example .env</h2>

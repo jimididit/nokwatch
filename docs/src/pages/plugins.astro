@@ -1,0 +1,52 @@
+---
+import DocsLayout from '../layouts/DocsLayout.astro';
+---
+
+<DocsLayout
+  title="Plugins"
+  description="Nokwatch plugins: extend with optional plugins like nokwatch-scan (Scanner). Install from Web UI or pip. Plugins share the same dashboard, notifications, and cooldowns."
+  keywords="Nokwatch plugins, nokwatch-scan, Scanner plugin, listing scan, install plugin, Modules"
+>
+  <h1>Plugins</h1>
+  <p>Nokwatch supports optional plugins that add new job types and UI. Plugins use the same database and dashboard: you manage all jobs (standard monitors and plugin jobs) from the main UI and use the same notifications, tags, and cooldowns.</p>
+
+  <h2>Installing plugins</h2>
+
+  <h3>From the Web UI</h3>
+  <p>Open <strong>Modules</strong> in the menu to see available plugins. You can install or uninstall from there (requires network; plugins are installed via pip). After installing, restart Nokwatch so it picks up the plugin.</p>
+
+  <h3>From the command line</h3>
+  <p>With your Nokwatch environment active:</p>
+  <pre><code>pip install nokwatch-scan</code></pre>
+  <p>Or from source (e.g. from the Nokwatch repo):</p>
+  <pre><code>pip install -e plugins/nokwatch-scan</code></pre>
+  <p>Restart the app so it loads the plugin. The plugin’s menu item (e.g. <strong>Scanner</strong>) will appear in the nav.</p>
+
+  <h3>Source code</h3>
+  <p>The <strong>nokwatch-scan</strong> plugin source is included in the main Nokwatch repo under <code>plugins/nokwatch-scan</code>. Future plugins will live in a dedicated <strong>nokwatch-plugins</strong> repository (separate from the main Nokwatch repo).</p>
+
+  <h2>nokwatch-scan (Scanner)</h2>
+  <p>The <strong>Scanner</strong> plugin monitors listing pages (e.g. eBay, job boards, classifieds) for new or changed items.</p>
+
+  <h3>Listing scan jobs</h3>
+  <p>Configure a URL and an extractor:</p>
+  <ul>
+    <li><strong>JSON APIs</strong> — Use JSONPath (e.g. <code>$.items[*]</code>) to define the list of items and fields for item URL, title, and price.</li>
+    <li><strong>HTML pages</strong> — Use CSS selectors for the item container, title, link, and price.</li>
+  </ul>
+  <p>Nokwatch fetches the page on a schedule, extracts items, and notifies you when new items appear or match your filters.</p>
+
+  <h3>Filters</h3>
+  <p>Optional text pattern and price range (min/max) let you narrow results before notifications.</p>
+
+  <h3>Scanner UI</h3>
+  <p>Use <strong>Scanner</strong> in the menu to add, edit, and manage scan jobs. You can run a check immediately to test the extractor. Scan jobs also appear on the main dashboard.</p>
+
+  <h3>Editing scan jobs from the dashboard</h3>
+  <p>You can edit shared options (notifications, tags, cooldown, auth) from the main <strong>Edit Monitor</strong> dialog. For extractor config (JSONPath or CSS selectors), use the Scanner’s edit page (<code>/scan/&lt;id&gt;/edit</code>).</p>
+
+  <h2>More plugins</h2>
+  <p>Additional plugins (e.g. other job types and integrations) are in development.</p>
+
+  <p>See <a href="/nokwatch/api/">API Reference</a> for plugin APIs (e.g. Scanner <code>/api/scan/jobs</code>).</p>
+</DocsLayout>

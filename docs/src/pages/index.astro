@@ -10,12 +10,13 @@ import DocsLayout from '../layouts/DocsLayout.astro';
     { question: 'What is Nokwatch?', answer: 'Nokwatch is a lightweight Python-based website monitoring tool that runs on low-resource devices like a Raspberry Pi. It monitors multiple websites for content changes and notifies you by email, Discord, or Slack when your criteria are met.' },
     { question: 'Can Nokwatch run on a Raspberry Pi?', answer: 'Yes. Nokwatch is designed for Raspberry Pi and similar low-resource devices. Use the minimal requirements install (requirements-minimal.txt) for a smaller footprint without AI or screenshot features.' },
     { question: 'How does Nokwatch notify me?', answer: 'Nokwatch can send notifications via email (SMTP), Discord webhooks, and Slack webhooks. You can use multiple channels per monitor and set a cooldown to avoid spam.' },
-    { question: 'What can Nokwatch monitor?', answer: 'Nokwatch monitors web pages for content changes using string or regex matching. It also supports JSON/API monitoring with JSONPath, HTTP status and response time alerts, and optional AI-based content change detection.' },
+    { question: 'What can Nokwatch monitor?', answer: 'Nokwatch monitors web pages for content changes using string or regex matching. It also supports JSON/API monitoring with JSONPath, HTTP status and response time alerts, and optional AI-based content change detection. Plugins like nokwatch-scan (Scanner) add listing-page monitoring for new items.' },
+    { question: 'Can I extend Nokwatch with plugins?', answer: 'Yes. Nokwatch supports optional plugins that add new job types and UI. Install plugins from the Modules page in the Web UI or via pip (e.g. pip install nokwatch-scan). Plugins share the same dashboard, notifications, and cooldowns.' },
   ]}
 >
   <h1>Introduction</h1>
   <p>
-    Nokwatch is a lightweight Python-based website monitoring tool. It runs on low-resource devices like a Raspberry Pi and monitors multiple websites for content changes. When your criteria are met, you get notified by email, Discord, or Slack.
+    Nokwatch is a lightweight Python-based website monitoring tool. It can run on low-resource devices like a Raspberry Pi and monitors multiple websites for content changes. When your criteria are met, you get notified by email, Discord, or Slack.
   </p>
 
   <h2>Why Nokwatch?</h2>
@@ -24,6 +25,7 @@ import DocsLayout from '../layouts/DocsLayout.astro';
     <li><strong>Flexible</strong> — String or regex matching, JSON/API monitoring with JSONPath, Basic Auth, custom headers, and cookies.</li>
     <li><strong>Multi-channel</strong> — Email, Discord webhooks, and Slack webhooks; multiple channels per monitor with cooldown.</li>
     <li><strong>Web UI</strong> — Dark-themed, mobile-friendly interface to add monitors, run checks, and view history.</li>
+    <li><strong>Extensible</strong> — Optional plugins (e.g. Scanner for listing pages) add new job types; more plugins in development.</li>
   </ul>
 
   <h2>Features at a glance</h2>
@@ -36,6 +38,7 @@ import DocsLayout from '../layouts/DocsLayout.astro';
     <li>Tags, templates, and Smart Setup (optional AI)</li>
     <li>Check history with diff and optional screenshots</li>
     <li>Export/Import monitors as JSON</li>
+    <li>Plugins (e.g. Scanner for listing pages; more in development)</li>
   </ul>
 
   <h2>Requirements</h2>

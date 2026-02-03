@@ -31,5 +31,10 @@ cd nokwatch</code></pre>
   <pre><code>python app.py</code></pre>
   <p>Open <code>http://localhost:5000</code> in your browser. The database is created automatically on first run.</p>
 
+  <h2>Optional: Install a plugin</h2>
+  <p>Plugins extend Nokwatch with new job types (e.g. Scanner for listing pages). From the Web UI, open <strong>Modules</strong> to install plugins, or from the command line:</p>
+  <pre><code>pip install nokwatch-scan</code></pre>
+  <p>Restart the app so it picks up the plugin. See <a href="/nokwatch/plugins/">Plugins</a> for details.</p>
+
   <p>See <a href="/nokwatch/deployment/">Deployment</a> for production (e.g. gunicorn and systemd on Raspberry Pi).</p>
 </DocsLayout>
