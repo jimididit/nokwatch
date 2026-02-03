@@ -1,7 +1,8 @@
 # Nokwatch
 
-[![CI](https://github.com/jimididit/nokwatch/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/jimididit/nokwatch/actions/workflows/ci.yml)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
+[![CI](https://github.com/jimididit/nokwatch/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/jimididit/nokwatch/actions/workflows/ci.yml)
+[![Publish Plugins](https://github.com/jimididit/nokwatch/actions/workflows/publish-plugins.yml/badge.svg)](https://github.com/jimididit/nokwatch/actions/workflows/publish-plugins.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 A lightweight Python-based website monitoring tool. Can run on low-resource devices like a Raspberry Pi (see [Limited-resource devices](#limited-resource-devices)). Monitor multiple websites for content changes and get notifications by email, Discord, or Slack when your criteria are met.
